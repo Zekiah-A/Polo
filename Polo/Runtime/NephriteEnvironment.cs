@@ -2,17 +2,17 @@
 using System.Reflection;
 using System.Security.Cryptography;
 using Microsoft.VisualBasic.FileIO;
-using Nephrite.Exceptions;
-using Nephrite.Lexer;
+using Polo.Exceptions;
+using Polo.Lexer;
 
-namespace Nephrite.Runtime;
-internal class NephriteEnvironment
+namespace Polo.Runtime;
+internal class MintEnvironment
 {
-    private readonly NephriteEnvironment? enclosing;
+    private readonly MintEnvironment? enclosing;
     private readonly Dictionary<string, object> values;
     private const BindingFlags BindingFlags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly;
 
-    public NephriteEnvironment(NephriteEnvironment? enclosing = null)
+    public MintEnvironment(MintEnvironment? enclosing = null)
     {
         this.enclosing = enclosing;
         values = new Dictionary<string, object>();

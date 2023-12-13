@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31605.320
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nephrite", "Nephrite\Nephrite.csproj", "{4186A1BC-C06C-4495-A17B-6EDA4F8D45D3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Polo", "Polo\Polo.csproj", "{4186A1BC-C06C-4495-A17B-6EDA4F8D45D3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Polo.Tests", "Polo.Tests\Polo.Tests.csproj", "{3779331F-5C52-496D-BEEB-77525AADF242}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{4186A1BC-C06C-4495-A17B-6EDA4F8D45D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4186A1BC-C06C-4495-A17B-6EDA4F8D45D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4186A1BC-C06C-4495-A17B-6EDA4F8D45D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3779331F-5C52-496D-BEEB-77525AADF242}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3779331F-5C52-496D-BEEB-77525AADF242}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3779331F-5C52-496D-BEEB-77525AADF242}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3779331F-5C52-496D-BEEB-77525AADF242}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

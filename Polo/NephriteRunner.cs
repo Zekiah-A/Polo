@@ -1,9 +1,9 @@
-﻿using Nephrite.Exceptions;
-using Nephrite.Lexer;
-using Nephrite.Runtime;
-using Nephrite.SyntaxAnalysis;
+﻿using Polo.Exceptions;
+using Polo.Lexer;
+using Polo.Runtime;
+using Polo.SyntaxAnalysis;
 
-public class NephriteRunner
+public class MintRunner
 {
     private readonly Interpreter interpreter = new();
     

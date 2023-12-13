@@ -1,16 +1,16 @@
-using Nephrite.Exceptions;
-using Nephrite.Lexer;
-using Nephrite.Runtime;
-using Nephrite.SyntaxAnalysis;
+using Polo.Exceptions;
+using Polo.Lexer;
+using Polo.Runtime;
+using Polo.SyntaxAnalysis;
 
-public class NephriteRepl
+public class MintRepl
 {
     private readonly List<string> replPrevious = new();
     private int replPreviousIndex;
 
-    private async Task Start()
+    public async Task Start()
     {
-        var runner = new NephriteRunner();
+        var runner = new MintRunner();
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.ResetColor();
 
