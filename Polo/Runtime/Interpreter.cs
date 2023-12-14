@@ -130,7 +130,6 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         {
             case TokenType.Bang:
                 return !IsTruthy(right);
-
             case TokenType.Minus:
                 CheckNumberOperands(unary.Operator, right);
                 return -(double)right;
@@ -140,7 +139,14 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
     }
 
     public object? VisitVariableExpression(Variable variable)
-        => environment.Get(variable.Name);
+    {
+        return environment.Get(variable.Name);
+    }
+
+    public object? VisitFunctionCallExpression(FunctionCall call)
+    {
+        throw new NotImplementedException();
+    }
 
     public object VisitAssignExpression(Assign assign)
     {
@@ -154,23 +160,28 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
     {
         var left = Evaluate(logical.Left);
 
-        /*if (logical.Operator.Type == TokenType.Or)
+        if (logical.Operator.Type == TokenType.Or)
         {
             if (IsTruthy(left))
+            {
                 return left;
+            }
         }
         else
         {
             if (!IsTruthy(left))
+            {
                 return left;
-        }*/
-        return left;
+            }
+        }
 
         return Evaluate(logical.Right);
     }
 
     private object? Evaluate(Expression expression)
-        => expression.Accept(this);
+    {
+        return expression.Accept(this);
+    }
 
     public object VisitBlockStatement(Block block)
     {
@@ -181,32 +192,43 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
     public object VisitIfStatement(If @if)
     {
         if (IsTruthy(Evaluate(@if.Condition)))
+        {
             Execute(@if.ThenBranch);
-
+        }
         else if (@if.ElseBranch != null)
+        {
             Execute(@if.ElseBranch);
+        }
 
         return @if;
     }
 
+    public object VisitReturnStatement(Return @return)
+    {
+        var result = Evaluate(@return.Expression);
+        return result;
+    }
+
     public object VisitDebugStatement(Debug debug)
     {
-        var value = Evaluate(debug.Expression);
+        var builder = new StringBuilder();
+        foreach (var expression in debug.Parameters)
+        {
+            var value = Evaluate(expression);
 
-        if (value == null)
-        {
-            Console.WriteLine("null");
-        }
-        else if (numericTypes.Contains(value.GetType()))
-        {
-            Console.WriteLine(value.ToString());
-        }
-        else
-        {
-            Console.WriteLine(value);
+            if (value == null)
+            {
+                builder.Append("null");
+            }
+            else
+            {
+                builder.Append(value);
+            }
         }
 
-        return value;
+        var result = builder.ToString();
+        Console.WriteLine(result);
+        return result;
     }
     
     public object VisitStatementExpression(StatementExpression statementExpression)
@@ -215,11 +237,13 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         return statementExpression;
     }
 
-    public object VisitVarStatement(Let let)
+    public object VisitLetStatement(Let let)
     {
         object? value = null;
         if (let.Initializer != null)
+        {
             value = Evaluate(let.Initializer);
+        }
 
         environment.Define(let.Name, value);
         return let;
@@ -229,7 +253,9 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
     {
         object? value = null;
         if (def.Initializer != null)
+        {
             value = Evaluate(def.Initializer);
+        }
 
         environment.Define(def.Name, value);
         return def;
@@ -238,7 +264,9 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
     public object VisitWhileStatement(While @while)
     {
         while (IsTruthy(Evaluate(@while.Condition)))
+        {
             Execute(@while.Body);
+        }
 
         return @while;
     }
@@ -273,7 +301,9 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
     private static bool IsTruthy(object? value)
     {
         if (value == null)
+        {
             return false;
+        }
 
         return value is not bool b || b;
     }

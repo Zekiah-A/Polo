@@ -4,7 +4,7 @@ This file only makes use of compiler primitives, hence having no
 dependency on the standard library.
 ##
 fn addOne(i: __i32): __i32
-	i += 1
+	i = i + 1
 	return i
 
 # Add one to input number

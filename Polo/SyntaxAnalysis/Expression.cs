@@ -16,6 +16,7 @@ internal interface IExpressionVisitor<T>
     T VisitVariableExpression(Variable variable);
     T VisitAssignExpression(Assign assign);
     T VisitLogicalExpression(Logical logical);
+    T VisitFunctionCallExpression(FunctionCall functionCall);
 }
 
 internal record Binary(Expression Left, Token Operator, Expression Right) : Expression
@@ -46,6 +47,13 @@ internal record Variable(Token Name) : Expression
 {
     public override T Accept<T>(IExpressionVisitor<T> visitor)
         => visitor.VisitVariableExpression(this);
+}
+
+internal record FunctionCall : Expression
+{
+    public override T Accept<T>(IExpressionVisitor<T> visitor)
+        => visitor.VisitFunctionCallExpression(this);
+
 }
 
 internal record Assign(Token Name, Expression Value) : Expression

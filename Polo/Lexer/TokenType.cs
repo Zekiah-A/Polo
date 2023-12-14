@@ -11,7 +11,9 @@ internal enum TokenType
     Equal, EqualEqual,
     Greater, GreaterEqual,
     Less, LessEqual,
-    
+    Or, And, BitwiseAnd,
+    BitwiseOr,
+
     // Compiler recognised primitives
     U8, I8, U16, I16, U32, I32, U64, I64, U128, I128, F16, F32, F64, F128, F256,
     Int, // size_t,
@@ -26,7 +28,7 @@ internal enum TokenType
     SizeOf, TypeOf, Let, Const, Get, Defer, Type, Impl, Copy, Static, Def, NullRef, False, True, This,
     
     // Control
-    Assert, If, Else, While, For, Return, Crash, Goto, Break,
+    Assert, Debug, If, Else, While, For, Return, Crash, Goto, Break,
         
     // Preprocess
     CompileTime, Import, Include, Line, File, Date, Time, Counter,

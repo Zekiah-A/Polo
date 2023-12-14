@@ -137,7 +137,14 @@ internal class Scanner
             case '>':
                 AddToken(Match('=') ? TokenType.GreaterEqual : TokenType.Greater);
                 break;
-            case '%': AddToken(TokenType.Modulo); 
+            case '%':
+                AddToken(TokenType.Modulo); 
+                break;
+            case '&':
+                AddToken(Match('&') ? TokenType.And : TokenType.BitwiseAnd);
+                break;
+            case '|':
+                AddToken(Match('|') ? TokenType.Or : TokenType.BitwiseOr);
                 break;
             case >= '0' and <= '9':
             {

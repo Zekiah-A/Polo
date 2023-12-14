@@ -16,10 +16,9 @@
     </ItemGroup>
 
     <ItemGroup>
-      <None Remove="Samples\nodeps.mt" />
-      <Resource Include="Samples\nodeps.mt">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Resource>
+      <None Update="Samples\nodeps.mt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

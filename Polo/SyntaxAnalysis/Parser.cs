@@ -101,11 +101,20 @@ internal class Parser
         {
             return FunctionStatement();
         }
-            
-            
+
+        if (Match(TokenType.Return))
+        {
+            return ReturnStatement();
+        }
+
+        if (Match(TokenType.Debug))
+        {
+            return DebugStatement();
+        }
+
         return ExpressionStatement();
     }
-
+    
     private Statement IfStatement()
     {
         var condition = Expression();
@@ -151,12 +160,12 @@ internal class Parser
         {
             if (IsAtEnd())
             {
-                Error(source[current],"Unexpected 'end of file' in function parameters");
+                Error(source[current],"Unexpected 'end of file' in function Parameters");
             }
             
             @params.Add(Advance());
         }
-        Consume(TokenType.RightParen, "Expected ')' after function parameters");
+        Consume(TokenType.RightParen, "Expected ')' after function Parameters");
         Consume(TokenType.Colon, "Expected ':' before function return type");
         
         var returnType = Advance();
@@ -168,23 +177,41 @@ internal class Parser
         return new Function(name, @params, new List<Statement>(), returnType);
     }
 
+    private Statement ReturnStatement()
+    {
+        Expression? returnExpression = null;
+        // TODO: Sus
+        try
+        {
+            returnExpression = Expression();
+        }
+        catch (ParsingErrorException e) { }
+
+        return new Return(returnExpression);
+    }
+
+    private Statement DebugStatement()
+    {
+        Consume(TokenType.LeftParen, "Expected opening '(' after debug invocation");
+        var parameters = CallParameters();
+        Consume(TokenType.LeftParen, "Expected closing ')' after debug invocation");
+        return new Debug(parameters);
+    }
+
     private Statement ExpressionStatement()
     {
         var expression = Expression();
         return new StatementExpression(expression);
     }
     
-    // The following expressions propogate down the method call chain until the correct solution is found
-    // TODO: For now we just jump straight to primary
     private Expression Expression()
     {
         return Assignment();
     }
 
     private Expression Assignment()
-    {
-        //var expression = Or();
-        var expression = Primary();
+    {  
+        var expression = Or();
 
         if (Match(TokenType.Equal))
         {
@@ -203,7 +230,7 @@ internal class Parser
         return expression;
     }
 
-    /*private Expression Or()
+    private Expression Or()
     {
         var expression = And();
 
@@ -290,6 +317,8 @@ internal class Parser
 
     private Expression Unary()
     {
+        var expression = FunctionCall();
+        
         if (Match(TokenType.Bang, TokenType.Minus))
         {
             var @operator = Previous();
@@ -297,8 +326,22 @@ internal class Parser
             return new Unary(@operator, right);
         }
 
-        return Primary();
-    }*/
+        return expression;
+    }
+
+    private Expression FunctionCall()
+    {
+        var expression = Primary();
+        
+        if (Match(TokenType.Identifier) && Match(TokenType.LeftParen))
+        {
+            var parameters = CallParameters();
+            Consume(TokenType.RightParen, "Expected closing ')' after method invocation");
+            return new FunctionCall();
+        }
+
+        return expression;
+    }
     
     private Expression Primary()
     {
@@ -330,11 +373,31 @@ internal class Parser
         if (Match(TokenType.LeftParen))
         {
             var expression = Expression();
-            Consume(TokenType.RightParen, "Expected ')' after expression");
+            Consume(TokenType.RightParen, "Expected ')' after Expression");
             return new Grouping(expression);
         }
 
-        throw Error(Peek(), "Expected expression");
+        throw Error(Peek(), "Expected Expression");
+    }
+
+    private List<Expression> CallParameters()
+    {
+        var parameters = new List<Expression>();
+        // TODO: Sus code
+        try
+        {
+            while (true)
+            {
+                Expression();
+                Consume(TokenType.Comma, "Expected ',' between method call arguments");
+            }
+        }
+        catch (ParsingErrorException)
+        {
+            
+        }
+
+        return parameters;
     }
 
     private ParsingErrorException Error(Token token, string message)
@@ -343,7 +406,7 @@ internal class Parser
     private bool CheckType(TokenType type)
         => !IsAtEnd() && Peek().Type == type;
 
-    private bool IsTypeToken(Token token)
+    private static bool IsTypeToken(Token token)
     {
         return token.Type is TokenType.U8 or TokenType.I8 or TokenType.U16 or TokenType.I16 or TokenType.U32
             or TokenType.I32 or TokenType.U64 or TokenType.I64 or TokenType.U128 or TokenType.I128 or TokenType.F16
@@ -378,30 +441,4 @@ internal class Parser
 
     private Token Peek()
         => source[current];
-
-    //private void Synchronize()
-    //{
-    //    Advance();
-
-    //    while (!IsAtEnd())
-    //    {
-    //        if (Previous().Type == TokenType.Semicolon)
-    //            return;
-
-    //        switch (Peek().Type)
-    //        {
-    //            case TokenType.Class:
-    //            case TokenType.Fun:
-    //            case TokenType.Var:
-    //            case TokenType.For:
-    //            case TokenType.If:
-    //            case TokenType.While:
-    //            case TokenType.WriteLine:
-    //            case TokenType.Return:
-    //                return;
-    //        }
-
-    //        Advance();
-    //    }
-    //}
 }

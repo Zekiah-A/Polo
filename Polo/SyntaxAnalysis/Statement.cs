@@ -5,19 +5,20 @@ namespace Polo.SyntaxAnalysis;
 
 internal abstract record Statement()
 {
-    public abstract T Accept<T>(IStatementVisitor<T> visitor);
+    public abstract T? Accept<T>(IStatementVisitor<T> visitor);
 }
 
-internal interface IStatementVisitor<T>
+internal interface IStatementVisitor<out T>
 {
-    T VisitBlockStatement(Block block);
-    T VisitStatementExpression(StatementExpression statementExpression);
-    T VisitIfStatement(If @if);
-    T VisitVarStatement(Let let);
-    T VisitDefStatement(Def def);
-    T VisitWhileStatement(While @while);
-    T VisitFunctionStatement(Function function);
-    T VisitDebugStatement(Debug debug);
+    T? VisitBlockStatement(Block block);
+    T? VisitStatementExpression(StatementExpression statementExpression);
+    T? VisitIfStatement(If @if);
+    T? VisitLetStatement(Let let);
+    T? VisitDefStatement(Def def);
+    T? VisitWhileStatement(While @while);
+    T? VisitFunctionStatement(Function function);
+    T? VisitDebugStatement(Debug debug);
+    T? VisitReturnStatement(Return @return);
 }
 
 // TODO: Implement using tab
@@ -42,7 +43,7 @@ internal record If(Expression Condition, Statement ThenBranch, Statement? ElseBr
 internal record Let(Token Name, Token type, Expression? Initializer) : Statement
 {
     public override T Accept<T>(IStatementVisitor<T> visitor)
-        => visitor.VisitVarStatement(this);
+        => visitor.VisitLetStatement(this);
 }
 
 internal record Def(Token Name, Expression? Initializer) : Statement
@@ -56,14 +57,20 @@ internal record While(Expression Condition, Statement Body) : Statement
     public override T Accept<T>(IStatementVisitor<T> visitor)
         => visitor.VisitWhileStatement(this);
 }
-// TODO: Token type for parameters is cursed, use declaration type instead! 
+// TODO: Token type for Parameters is cursed, use declaration type instead! 
 internal record Function(Token Name, List<Token> Parameters, List<Statement> Body, Token returnType) : Statement
 {
     public override T Accept<T>(IStatementVisitor<T> visitor)
         => visitor.VisitFunctionStatement(this);
 }
 
-internal record Debug(Expression Expression) : Statement
+internal record Return(Expression? Expression) : Statement
+{
+    public override T Accept<T>(IStatementVisitor<T> visitor)
+        => visitor.VisitReturnStatement(this);
+}
+
+internal record Debug(List<Expression> Parameters) : Statement
 {
     public override T Accept<T>(IStatementVisitor<T> visitor)
         => visitor.VisitDebugStatement(this);
