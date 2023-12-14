@@ -10,15 +10,9 @@ namespace Polo.Runtime;
 
 internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<object>
 {
+    // TODO: At the moment we only hold one main execution context/thread
     private MintEnvironment environment;
     
-    private readonly HashSet<Type> numericTypes = new HashSet<Type>
-    {
-        typeof(byte), typeof(sbyte), typeof(short), typeof(ushort),
-        typeof(int), typeof(uint), typeof(long), typeof(ulong),
-        typeof(decimal), typeof(double), typeof(float)
-    };
-
     public Interpreter()
     {
         environment = new MintEnvironment();
@@ -27,7 +21,9 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
     public void Run(ImmutableArray<Statement> statements)
     {
         foreach (var statement in statements)
+        {
             Execute(statement);
+        }
     }
 
     public object VisitBinaryExpression(Binary binary)
@@ -118,10 +114,15 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
     }
 
     public object VisitGroupingExpression(Grouping grouping)
-        => Evaluate(grouping.Expression);
+    {
+        return Evaluate(grouping.Expression);
+    }
 
     public object? VisitLiteralExpression(Literal literal)
-        => literal.Value;
+    {
+        // Convert the C# typed literal to a mint compatible runtime type, then push the literal to the stack
+        return literal.Value;
+    }
 
     public object VisitUnaryExpression(Unary unary)
     {
@@ -185,7 +186,8 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
 
     public object VisitBlockStatement(Block block)
     {
-        ExecuteBlock(block.Statements, new MintEnvironment(environment));
+        throw new NotImplementedException();
+        //ExecuteBlock(block.Statements, new MintEnvironment(environment));
         return block;
     }
 
@@ -245,7 +247,7 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
             value = Evaluate(let.Initializer);
         }
 
-        environment.Define(let.Name, value);
+        //environment.Define(let.Name, value);
         return let;
     }
 
@@ -257,7 +259,7 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
             value = Evaluate(def.Initializer);
         }
 
-        environment.Define(def.Name, value);
+        //environment.Define(def.Name, value);
         return def;
     }
 

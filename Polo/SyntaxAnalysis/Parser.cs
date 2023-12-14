@@ -96,6 +96,11 @@ internal class Parser
         {
             return WhileStatement();
         }
+        
+        if (Match(TokenType.Debug))
+        {
+            return DebugStatement();
+        }
 
         if (Match(TokenType.Function))
         {
@@ -106,12 +111,7 @@ internal class Parser
         {
             return ReturnStatement();
         }
-
-        if (Match(TokenType.Debug))
-        {
-            return DebugStatement();
-        }
-
+        
         return ExpressionStatement();
     }
     

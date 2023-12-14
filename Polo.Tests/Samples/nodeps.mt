@@ -1,4 +1,4 @@
-  ##
+##
 --- nodeps.mt ---
 This file only makes use of compiler primitives, hence having no 
 dependency on the standard library.

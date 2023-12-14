@@ -1,93 +1,68 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using Microsoft.VisualBasic.FileIO;
 using Polo.Exceptions;
 using Polo.Lexer;
 
 namespace Polo.Runtime;
 
-// Mint environment "virtual machine". Will act as a store for variables and datam
+/// <summary>
+/// Mint environment "virtual machine". An environment is spawned for each thread of the process, responsible for
+/// containing memory management methods for that thread, as well as the stack for the given thread. The heap is
+/// shared across all threads of the mint 'process' hence just using the interpreter's shared heap
+/// </summary>
 internal unsafe class MintEnvironment
 {
-    private readonly MintEnvironment? enclosing;
-
     // VM environment memory
-    private byte* memory;
-    private long memorySize = 1024;
-
-    // For now interpreter holds a map of variable name : memory address
-    private readonly Dictionary<string, long> variableMap;
-    private List<(long RelativeAddr, int Size)> memoryBlocks;
-    private const BindingFlags BindingFlags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly;
-
-    public MintEnvironment(MintEnvironment? enclosing = null)
+    private byte* stack;
+    private long stackSize = 4096;
+    private byte* frameStart;
+    private byte* stackPointer;
+    
+    public MintEnvironment()
     {
-        this.enclosing = enclosing;
-        memory = (byte*) NativeMemory.Alloc((UIntPtr) memorySize);
-        variableMap = new Dictionary<string, long>();
-        memoryBlocks = new List<(long, int)>();
-    }
-
-    public long Malloc(int @object)
-    {
-        // Try to allocate between existing memory blocks, else add new trailing block
-        if (memoryBlocks.Count > 1)
-        {
-            for (var i = 0; i < memoryBlocks.Count - 1; i++)
-            {
-                if (memoryBlocks[i + 1].Size - memoryBlocks[i].Size > 4)
-                {
-                    var betweenAddr = memoryBlocks[i].RelativeAddr + 
-                    memoryBlocks.Add((0L, 4));
-                    return ;
-                }
-            }
-        }
-        else
-        {
-            memoryBlocks.Add((0L, 4));
-            return 0;
-        }
-        
-        var lastItem = memoryBlocks.Last();
-        var alignedSize = 1;
-        while (alignedSize > lastItem.Size)
-        {
-            alignedSize *= 2;
-        }
-        var nextAddr = lastItem.RelativeAddr + alignedSize;
-        memoryBlocks.Add((nexdtAddr))
+        stack = (byte*) NativeMemory.Alloc((UIntPtr) stackSize);
+        frameStart = stack;
+        stackPointer = stack;
     }
     
-    // Variables can not have empty names.
-    public void Define(Token token, object? value)
+    /// <summary>
+    /// Pushes a RuntimeType that was marshalled from a C# type from the heap to the stack program stack
+    /// when it is needed, for example, as a literal
+    /// </summary>
+    public void PushStack(RuntimeType variable)
     {
-        long address = 0;
-        if (value is int intValue)
+        if (stackSize - ((long)stackPointer - (long)stack) < variable.Size)
         {
-            address = Malloc(intValue);
+            throw new RuntimeStackOverflowException("Could not push heap marshalled RuntimeType to stack. Overflow occurred");
         }
         
-        variableMap.Add(token.Value!.ToString()!, address);
+        NativeMemory.Copy(variable.Value, stackPointer, (UIntPtr)variable.Size);
+        stackPointer += variable.Size;
+    }
+    
+    public void Malloc(long length)
+    {
+        NativeMemory.Alloc((UIntPtr) length);
     }
 
-    public void Free(Token token, long addr)
+    public void Free(long addr)
     {
-        variableMap.Remove(token.Value?.ToString()!);
-    }
+        NativeMemory.Free((void*) addr);
+     }
 
     public object? Get(Token name)
     {
-        if (name.Value is not null)
+        /*if (name.Value is not null)
         {
             var value = name.Value.ToString();
 
             if (value is not null)
             {
                 if (values.ContainsKey(value))
+                {
                     return values[value];
+                }
 
                 if (enclosing != null)
                     return enclosing.Get(name);
@@ -103,14 +78,14 @@ internal unsafe class MintEnvironment
                     
                 throw new RuntimeErrorException($"Undefined variable '{name}'");
             }
-        }
+        }*/
 
         throw new RuntimeErrorException($"Undefined variable '{name}'");
     }
 
     public void Assign(Token token, object value)
     {
-        if (token.Value is not null)
+        /*if (token.Value is not null)
         {
             var name = token.Value.ToString();
 
@@ -146,9 +121,7 @@ internal unsafe class MintEnvironment
                     }
                 }
             }
-            
-            
-        }
+        }*/
 
         throw new RuntimeErrorException($"Undefined variable '{token}'");
     }
