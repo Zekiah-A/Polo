@@ -25,7 +25,9 @@ internal class Parser
         {
             var declaration = Declaration();
             if (declaration is not null)
+            {
                 statements.Add(declaration);
+            }
         }
 
         return statements.ToImmutableArray();
@@ -61,13 +63,21 @@ internal class Parser
     private Statement LetDeclaration()
     {
         var name = Consume(TokenType.Identifier, "Expected variable name");
+        Consume(TokenType.Colon, "Expected colon after variable name");
+        var type = Advance();
+        if (!IsTypeToken(type))
+        {
+            Error(type, "Expected variable type after name");
+        }
         Expression? initializer = null;
 
         if (Match(TokenType.Equal))
+        {
             initializer = Expression();
-        
+        }
+
         // Because variables can be assigned without a value.
-        return new Let(name, initializer);
+        return new Let(name, type, initializer);
     }
 
     private Statement Statement()
@@ -143,10 +153,19 @@ internal class Parser
             {
                 Error(source[current],"Unexpected 'end of file' in function parameters");
             }
+            
             @params.Add(Advance());
         }
+        Consume(TokenType.RightParen, "Expected ')' after function parameters");
+        Consume(TokenType.Colon, "Expected ':' before function return type");
         
-        return new Function(name, @params, null);
+        var returnType = Advance();
+        if (!IsTypeToken(returnType))
+        {
+            Error(returnType, "Expected function return type");
+        }
+        
+        return new Function(name, @params, new List<Statement>(), returnType);
     }
 
     private Statement ExpressionStatement()
@@ -284,19 +303,29 @@ internal class Parser
     private Expression Primary()
     {
         if (Match(TokenType.False))
+        {
             return new Literal(false);
+        }
 
         if (Match(TokenType.True))
+        {
             return new Literal(true);
+        }
 
         if (Match(TokenType.NullRef))
+        {
             return new Literal(null);
+        }
 
         if (Match(TokenType.Number, TokenType.String))
+        {
             return new Literal(Previous().Value);
+        }
 
         if (Match(TokenType.Identifier))
+        {
             return new Variable(Previous());
+        }
 
         if (Match(TokenType.LeftParen))
         {
@@ -313,6 +342,14 @@ internal class Parser
 
     private bool CheckType(TokenType type)
         => !IsAtEnd() && Peek().Type == type;
+
+    private bool IsTypeToken(Token token)
+    {
+        return token.Type is TokenType.U8 or TokenType.I8 or TokenType.U16 or TokenType.I16 or TokenType.U32
+            or TokenType.I32 or TokenType.U64 or TokenType.I64 or TokenType.U128 or TokenType.I128 or TokenType.F16
+            or TokenType.F32 or TokenType.F64 or TokenType.F128 or TokenType.F256 or TokenType.Int or TokenType.UInt
+            or TokenType.Float or TokenType.Bool or TokenType.Void or TokenType.Char or TokenType.Function;
+    }
 
     private bool Match(params TokenType[] types)
     {

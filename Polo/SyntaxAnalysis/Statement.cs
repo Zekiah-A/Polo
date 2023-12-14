@@ -39,7 +39,7 @@ internal record If(Expression Condition, Statement ThenBranch, Statement? ElseBr
         => visitor.VisitIfStatement(this);
 }
 
-internal record Let(Token Name, Expression? Initializer) : Statement
+internal record Let(Token Name, Token type, Expression? Initializer) : Statement
 {
     public override T Accept<T>(IStatementVisitor<T> visitor)
         => visitor.VisitVarStatement(this);
@@ -57,7 +57,7 @@ internal record While(Expression Condition, Statement Body) : Statement
         => visitor.VisitWhileStatement(this);
 }
 // TODO: Token type for parameters is cursed, use declaration type instead! 
-internal record Function(Token Name, List<Token> Parameters, List<Statement> Body) : Statement
+internal record Function(Token Name, List<Token> Parameters, List<Statement> Body, Token returnType) : Statement
 {
     public override T Accept<T>(IStatementVisitor<T> visitor)
         => visitor.VisitFunctionStatement(this);
