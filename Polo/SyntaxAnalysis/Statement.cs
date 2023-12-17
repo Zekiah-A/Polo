@@ -5,7 +5,7 @@ namespace Polo.SyntaxAnalysis;
 
 internal abstract record Statement()
 {
-    public abstract T? Accept<T>(IStatementVisitor<T> visitor);
+    public abstract T? Accept<T>(IStatementVisitor<T?> visitor);
 }
 
 internal interface IStatementVisitor<out T>
@@ -21,7 +21,6 @@ internal interface IStatementVisitor<out T>
     T? VisitReturnStatement(Return @return);
 }
 
-// TODO: Implement using tab
 internal record Block(List<Statement> Statements) : Statement
 {
     public override T Accept<T>(IStatementVisitor<T> visitor)
@@ -40,7 +39,7 @@ internal record If(Expression Condition, Statement ThenBranch, Statement? ElseBr
         => visitor.VisitIfStatement(this);
 }
 
-internal record Let(Token Name, Token type, Expression? Initializer) : Statement
+internal record Let(Token Name, string TypeName, Expression? Initializer) : Statement
 {
     public override T Accept<T>(IStatementVisitor<T> visitor)
         => visitor.VisitLetStatement(this);

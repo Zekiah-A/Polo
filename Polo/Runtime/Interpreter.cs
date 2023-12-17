@@ -8,7 +8,7 @@ using Polo.SyntaxAnalysis;
 
 namespace Polo.Runtime;
 
-internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<object>
+internal class Interpreter : IExpressionVisitor<object?, object?>, IStatementVisitor<object>
 {
     // TODO: At the moment we only hold one main execution context/thread
     private MintEnvironment environment;
@@ -26,7 +26,7 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         }
     }
 
-    public object VisitBinaryExpression(Binary binary)
+    public object? VisitBinaryExpression(Binary binary)
     {
         var left = Evaluate(binary.Left);
         var right = Evaluate(binary.Right);
@@ -35,12 +35,17 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         {
             case TokenType.Plus:
             {
-                return left switch
+                // TODO: For non-primitive mint types. The interpreter will find the mint handler for this cast
+                // TODO: and call it to achieve the result
+                
+                // L, R should be runtime types
+                
+                /*return left switch
                 {
                     double d when right is double d1 => d + d1,
                     string s when right is string s1 => s + s1,
                     _ => throw new RuntimeErrorException("Operands must be two numbers or two strings.")
-                };
+                };*/
             }
             case TokenType.Minus:
             {
@@ -113,18 +118,19 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         throw new RuntimeErrorException("Unknown operator.");
     }
 
-    public object VisitGroupingExpression(Grouping grouping)
+    public object? VisitGroupingExpression(Grouping grouping)
     {
         return Evaluate(grouping.Expression);
     }
 
+    // Convert the C# typed literal to a mint compatible runtime type
     public object? VisitLiteralExpression(Literal literal)
     {
-        // Convert the C# typed literal to a mint compatible runtime type, then push the literal to the stack
-        return literal.Value;
+        var runtimeValue = RuntimeType.CreateFrom(literal.Value);
+        return runtimeValue;
     }
 
-    public object VisitUnaryExpression(Unary unary)
+    public object? VisitUnaryExpression(Unary unary)
     {
         var right = Evaluate(unary.Right);
         switch (unary.Operator.Type)
@@ -149,7 +155,7 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         throw new NotImplementedException();
     }
 
-    public object VisitAssignExpression(Assign assign)
+    public object? VisitAssignExpression(Assign assign)
     {
         var value = Evaluate(assign.Value);
 
@@ -157,7 +163,7 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         return value;
     }
 
-    public object VisitLogicalExpression(Logical logical)
+    public object? VisitLogicalExpression(Logical logical)
     {
         var left = Evaluate(logical.Left);
 
@@ -184,14 +190,14 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         return expression.Accept(this);
     }
 
-    public object VisitBlockStatement(Block block)
+    public object? VisitBlockStatement(Block block)
     {
         throw new NotImplementedException();
         //ExecuteBlock(block.Statements, new MintEnvironment(environment));
         return block;
     }
 
-    public object VisitIfStatement(If @if)
+    public object? VisitIfStatement(If @if)
     {
         if (IsTruthy(Evaluate(@if.Condition)))
         {
@@ -205,13 +211,13 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         return @if;
     }
 
-    public object VisitReturnStatement(Return @return)
+    public object? VisitReturnStatement(Return @return)
     {
         var result = Evaluate(@return.Expression);
         return result;
     }
 
-    public object VisitDebugStatement(Debug debug)
+    public object? VisitDebugStatement(Debug debug)
     {
         var builder = new StringBuilder();
         foreach (var expression in debug.Parameters)
@@ -233,25 +239,57 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         return result;
     }
     
-    public object VisitStatementExpression(StatementExpression statementExpression)
+    public object? VisitStatementExpression(StatementExpression statementExpression)
     {
         Evaluate(statementExpression.Expression);
         return statementExpression;
     }
 
-    public object VisitLetStatement(Let let)
+    public unsafe RuntimeType ImplicitCast(RuntimeType runtimeValue, string targetType)
+    {
+        // If type is a primitive, casting can be done within C#
+        switch (targetType)
+        {
+            case "i32":
+            {
+                switch (runtimeValue.TypeName)
+                {
+                    case "f64":
+                        var doubleValue = *(double*) runtimeValue.Value;
+                        var intValue = Convert.ToInt32(doubleValue);
+                        var rtType = RuntimeType.CreateFrom(intValue);
+                        return rtType;
+                }
+                break;
+            }
+        }
+        
+        // TODO: For mint non-primitive types. The interpreter will find find the mint handler for this cast and call
+        // TODO: it to achieve the result
+        throw new RuntimeErrorException($"Can not perform implicit cast between incompatible types {runtimeValue.TypeName} and {targetType}");
+    }
+
+    public object? VisitLetStatement(Let let)
     {
         object? value = null;
         if (let.Initializer != null)
         {
             value = Evaluate(let.Initializer);
         }
+        if (value is not RuntimeType runtimeValue)
+        {
+            throw new RuntimeErrorException("Could not initialise variable. Initializer did not return runtime type");
+        }
+        if (runtimeValue.TypeName != let.TypeName)
+        {
+            runtimeValue = ImplicitCast(runtimeValue, let.TypeName);
+        }
 
-        //environment.Define(let.Name, value);
+        environment.PushStack(runtimeValue);
         return let;
     }
 
-    public object VisitDefStatement(Def def)
+    public object? VisitDefStatement(Def def)
     {
         object? value = null;
         if (def.Initializer != null)
@@ -263,7 +301,7 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         return def;
     }
 
-    public object VisitWhileStatement(While @while)
+    public object? VisitWhileStatement(While @while)
     {
         while (IsTruthy(Evaluate(@while.Condition)))
         {
@@ -273,7 +311,7 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
         return @while;
     }
 
-    public object VisitFunctionStatement(Function function)
+    public object? VisitFunctionStatement(Function function)
     {
         throw new NotImplementedException();
     }
@@ -296,7 +334,6 @@ internal class Interpreter : IExpressionVisitor<object>, IStatementVisitor<objec
 
     private void Execute(Statement statement)
     {
-        // TODO: Only analyse for now
         statement.Accept(this);
     }
 

@@ -7,6 +7,7 @@ public unsafe struct RuntimeType
 {
     public int Size;
     public void* Value;
+    public string TypeName;
     
     public RuntimeType(int size)
     {
@@ -20,14 +21,19 @@ public unsafe struct RuntimeType
         if (managed == null)
         {
             rtType.Value = (void*)0;
+            rtType.TypeName = "null";
             return rtType;
         }
+        var managedType = managed.GetType();
 
         var handle = GCHandle.Alloc(managed, GCHandleType.Pinned);
         try
         {
-            var size = TypeInformation.GetSize(managed.GetType());
+            var size = TypeInformation.GetSize(managedType);
             rtType.Value = NativeMemory.Alloc((UIntPtr) size);
+            rtType.Size = size;
+            rtType.TypeName = TypeInformation.GetEquivalentName(managedType);
+            
             var address = handle.AddrOfPinnedObject();
             NativeMemory.Copy((void*) address, rtType.Value, (UIntPtr)size);
         }

@@ -169,7 +169,9 @@ internal class Scanner
             case >= 'a' and <= 'z' or '_':
             {
                 while (char.IsDigit(Peek()) || char.IsLetter(Peek()) || Match('_'))
+                {
                     Advance();
+                }
 
                 var identifier = source[start..current];
 
@@ -192,13 +194,41 @@ internal class Scanner
                 }
 
                 if (IsAtEnd())
+                {
                     Error("Unterminated string");
+                }
 
                 // The closing quote.
                 Advance();
 
                 var content = source[(start + 1)..(current - 1)];
                 AddToken(TokenType.String, content);
+                break;
+            }
+            case '\'':
+            {
+                var strStart = current;
+                char c;
+                if (Match('\\'))
+                {
+                    c = Advance();
+                }
+                var @char = Advance();
+                
+                while (Peek() != '"' && !IsAtEnd())
+                {
+                    if (Peek() == '\n')
+                    {
+                        line++;
+                    }
+
+                    Advance();
+                }
+                
+                if (IsAtEnd())
+                {
+                    Error("Unterminated string");
+                }
                 break;
             }
             case '#':

@@ -27,7 +27,7 @@ public class MintRepl
                     Console.SetCursorPosition(Console.CursorLeft - 1, Console.CursorTop);
                     if (input?.Length < 1) continue;
                     input = input?[..^1];
-                    Console.Write("\b \b");
+                    Console.Write("\b");
                     continue;
                 case ConsoleKey.UpArrow:
                     input = replPrevious.ElementAtOrDefault(^replPreviousIndex);
@@ -48,7 +48,9 @@ public class MintRepl
             Console.Write(">> ");
 
             if (!string.IsNullOrEmpty(input))
-                await runner.Execute(input);
+            {
+                runner.Interpret(input);
+            }
 
             replPrevious.Add(input);
             input = "";

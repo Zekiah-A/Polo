@@ -9,8 +9,8 @@ namespace Polo.SyntaxAnalysis;
 internal class Parser
 {
     private int current;
-
     private readonly ImmutableArray<Token> source;
+    private readonly Dictionary<string, DefinedType> foundTypes;
 
     public Parser(ImmutableArray<Token> source)
     {
@@ -60,14 +60,18 @@ internal class Parser
         return new Def(name, initializer);
     }
 
+    private void ValidateType(Token typeToken)
+    {
+    }
+
     private Statement LetDeclaration()
     {
         var name = Consume(TokenType.Identifier, "Expected variable name");
         Consume(TokenType.Colon, "Expected colon after variable name");
         var type = Advance();
-        if (!IsTypeToken(type))
+        if (type.Value is not string typeName)
         {
-            Error(type, "Expected variable type after name");
+            throw Error(type, "Expected type name after variable identifier");
         }
         Expression? initializer = null;
 
@@ -77,7 +81,7 @@ internal class Parser
         }
 
         // Because variables can be assigned without a value.
-        return new Let(name, type, initializer);
+        return new Let(name, typeName, initializer);
     }
 
     private Statement Statement()
@@ -160,7 +164,7 @@ internal class Parser
         {
             if (IsAtEnd())
             {
-                Error(source[current],"Unexpected 'end of file' in function Parameters");
+                throw Error(source[current],"Unexpected 'end of file' in function Parameters");
             }
             
             @params.Add(Advance());
@@ -171,7 +175,7 @@ internal class Parser
         var returnType = Advance();
         if (!IsTypeToken(returnType))
         {
-            Error(returnType, "Expected function return type");
+            throw Error(returnType, "Expected function return type");
         }
         
         return new Function(name, @params, new List<Statement>(), returnType);
@@ -194,7 +198,7 @@ internal class Parser
     {
         Consume(TokenType.LeftParen, "Expected opening '(' after debug invocation");
         var parameters = CallParameters();
-        Consume(TokenType.LeftParen, "Expected closing ')' after debug invocation");
+        Consume(TokenType.RightParen, "Expected closing ')' after debug invocation");
         return new Debug(parameters);
     }
 
@@ -224,7 +228,7 @@ internal class Parser
                 return new Assign(name, value);
             }
 
-            Error(equals, "Invalid assignment target");
+            throw Error(equals, "Invalid assignment target");
         }
 
         return expression;
@@ -335,9 +339,11 @@ internal class Parser
         
         if (Match(TokenType.Identifier) && Match(TokenType.LeftParen))
         {
+            var identifier = source[current - 2];
+            Console.WriteLine(identifier);
             var parameters = CallParameters();
             Consume(TokenType.RightParen, "Expected closing ')' after method invocation");
-            return new FunctionCall();
+            return new FunctionCall(identifier, parameters);
         }
 
         return expression;
@@ -347,29 +353,34 @@ internal class Parser
     {
         if (Match(TokenType.False))
         {
-            return new Literal(false);
+            return new Literal(false, LiteralType.Binary);
         }
-
+        
         if (Match(TokenType.True))
         {
-            return new Literal(true);
+            return new Literal(true, LiteralType.Binary);
         }
-
+        
         if (Match(TokenType.NullRef))
         {
-            return new Literal(null);
+            return new Literal(null, LiteralType.Null);
         }
-
-        if (Match(TokenType.Number, TokenType.String))
+        
+        if (Match(TokenType.Number))
         {
-            return new Literal(Previous().Value);
+            return new Literal(Previous().Value, LiteralType.Integer);
         }
-
+        
+        if (Match(TokenType.String))
+        {
+            return new Literal(Previous().Value, LiteralType.String);
+        }
+        
         if (Match(TokenType.Identifier))
         {
             return new Variable(Previous());
         }
-
+        
         if (Match(TokenType.LeftParen))
         {
             var expression = Expression();
@@ -388,7 +399,7 @@ internal class Parser
         {
             while (true)
             {
-                Expression();
+                parameters.Add(Expression());
                 Consume(TokenType.Comma, "Expected ',' between method call arguments");
             }
         }

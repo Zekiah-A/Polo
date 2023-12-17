@@ -11,6 +11,31 @@ internal static class TypeInformation
         typeof(decimal), typeof(double), typeof(float)
     };
 
+    public static readonly HashSet<string> PrimitiveTypes = new HashSet<string>()
+    {
+        "u8",
+        "i8",
+        "u16",
+        "i16",
+        "u32",
+        "i32",
+        "u64",
+        "i64",
+        "u128",
+        "i128",
+        "f16",
+        "f32",
+        "f64",
+        "f128",
+        "__f256",
+        "int",
+        "uint",
+        "float",
+        "bool",
+        "void",
+        "char"
+    };
+    
     public static int GetSize(TokenType tokenType)
     {
         return tokenType switch
@@ -63,7 +88,57 @@ internal static class TypeInformation
             _ => throw new ArgumentOutOfRangeException(nameof(typeCode), typeCode, "Invalid TypeCode"),
         };
     }
-    
+
+    public static bool CastImplicit(string typeName, in RuntimeType casted)
+    {
+        if (casted.TypeName == typeName)
+        {
+            return true;
+        }
+        
+        switch (typeName)
+        {
+            case "":
+                
+                break;
+        }
+
+        return false;
+    }
+
+    public static string GetEquivalentName(Type managedType)
+    {
+        if (managedType == typeof(bool))
+            return "bool";
+        if (managedType == typeof(byte))
+            return "u8";
+        if (managedType == typeof(sbyte))
+            return "i8";
+        if (managedType == typeof(char))
+            return "char";
+        if (managedType == typeof(short))
+            return "i16";
+        if (managedType == typeof(ushort))
+            return "u16";
+        if (managedType == typeof(int))
+            return "i32";
+        if (managedType == typeof(uint))
+            return "u32";
+        if (managedType == typeof(long))
+            return "i64";
+        if (managedType == typeof(ulong))
+            return "u64";
+        if (managedType == typeof(float))
+            return "f32";
+        if (managedType == typeof(double))
+            return "f64";
+        if (managedType == typeof(string))
+            return "u8*";
+        if (managedType == typeof(object))
+            return "void*";
+        throw new ArgumentOutOfRangeException(nameof(managedType), managedType, "Invalid type");
+    }
+
     public static int GetSize(Type managedType)
     {
         if (managedType == typeof(bool))

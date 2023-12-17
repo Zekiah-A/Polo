@@ -34,11 +34,27 @@ internal unsafe class MintEnvironment
     {
         if (stackSize - ((long)stackPointer - (long)stack) < variable.Size)
         {
-            throw new RuntimeStackOverflowException("Could not push heap marshalled RuntimeType to stack. Overflow occurred");
+            throw new RuntimeErrorException("Could not push heap marshalled RuntimeType to stack. Stack overflow occurred");
         }
         
         NativeMemory.Copy(variable.Value, stackPointer, (UIntPtr)variable.Size);
         stackPointer += variable.Size;
+    }
+
+    public void PopStack(long size)
+    {
+        var newSp = stackPointer - size;
+        if (newSp < frameStart)
+        {
+            throw new RuntimeErrorException("Impossible operation. Trying to pop beyond stack frame");
+        }
+
+        stackPointer = newSp;
+    }
+
+    public void ExitFrame()
+    {
+        stackPointer = frameStart;
     }
     
     public void Malloc(long length)
@@ -49,10 +65,16 @@ internal unsafe class MintEnvironment
     public void Free(long addr)
     {
         NativeMemory.Free((void*) addr);
-     }
+    }
 
-    public object? Get(Token name)
+    /// <summary>
+    /// Will use stack lookup table to try and find the stack offset of the named variable. Returning it boxed in a
+    /// runtime type if it can
+    /// </summary>
+    public RuntimeType Get(string name)
     {
+        
+        
         /*if (name.Value is not null)
         {
             var value = name.Value.ToString();
