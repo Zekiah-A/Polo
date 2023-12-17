@@ -18,23 +18,29 @@ internal unsafe class MintEnvironment
     private long stackSize = 4096;
     private byte* frameStart;
     private byte* stackPointer;
+    private List<StackIdentifier> stackIdentifiers;
     
     public MintEnvironment()
     {
         stack = (byte*) NativeMemory.Alloc((UIntPtr) stackSize);
         frameStart = stack;
         stackPointer = stack;
+        stackIdentifiers = new List<StackIdentifier>();
     }
     
     /// <summary>
     /// Pushes a RuntimeType that was marshalled from a C# type from the heap to the stack program stack
     /// when it is needed, for example, as a literal
     /// </summary>
-    public void PushStack(RuntimeType variable)
+    public void PushStack(RuntimeType variable, string? identifier = null)
     {
         if (stackSize - ((long)stackPointer - (long)stack) < variable.Size)
         {
             throw new RuntimeErrorException("Could not push heap marshalled RuntimeType to stack. Stack overflow occurred");
+        }
+        if (identifier is not null)
+        {
+            stackIdentifiers.Add(new StackIdentifier(identifier, variable));
         }
         
         NativeMemory.Copy(variable.Value, stackPointer, (UIntPtr)variable.Size);
@@ -47,6 +53,18 @@ internal unsafe class MintEnvironment
         if (newSp < frameStart)
         {
             throw new RuntimeErrorException("Impossible operation. Trying to pop beyond stack frame");
+        }
+        for (var i = stackIdentifiers.Count - 1; i >= 0; i--)
+        {
+            var identPair = stackIdentifiers[i];
+            if ((long) identPair.TypeInfo.Value > (long) newSp)
+            {
+                stackIdentifiers.RemoveAt(i);
+            }
+            else
+            {
+                break;
+            }
         }
 
         stackPointer = newSp;
@@ -68,39 +86,19 @@ internal unsafe class MintEnvironment
     }
 
     /// <summary>
-    /// Will use stack lookup table to try and find the stack offset of the named variable. Returning it boxed in a
-    /// runtime type if it can
+    /// Will use stack lookup table to try and find the stack offset of the named variable.
+    /// Returning it boxed in a runtime type if it can
     /// </summary>
     public RuntimeType Get(string name)
     {
-        
-        
-        /*if (name.Value is not null)
+        for (var i = stackIdentifiers.Count - 1; i >= 0; i--)
         {
-            var value = name.Value.ToString();
-
-            if (value is not null)
+            var identPair = stackIdentifiers[i];
+            if (identPair.Identifier == name)
             {
-                if (values.ContainsKey(value))
-                {
-                    return values[value];
-                }
-
-                if (enclosing != null)
-                    return enclosing.Get(name);
-
-                foreach (var fieldInfos in Assembly.GetExecutingAssembly().GetTypes().Select(type => type.GetFields(BindingFlags)))
-                {
-                    foreach (var field in fieldInfos)
-                    {
-                        if (!field.Name.Equals(value)) continue;
-                        return field.GetValue(field);
-                    }
-                }
-                    
-                throw new RuntimeErrorException($"Undefined variable '{name}'");
+                return stackIdentifiers[i].TypeInfo;
             }
-        }*/
+        }
 
         throw new RuntimeErrorException($"Undefined variable '{name}'");
     }

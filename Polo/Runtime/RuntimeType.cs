@@ -9,7 +9,7 @@ public unsafe struct RuntimeType
     public void* Value;
     public string TypeName;
     
-    public RuntimeType(int size)
+    private RuntimeType(int size)
     {
         Size = size;
     }

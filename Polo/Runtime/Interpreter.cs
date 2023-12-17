@@ -26,10 +26,16 @@ internal class Interpreter : IExpressionVisitor<object?, object?>, IStatementVis
         }
     }
 
-    public object? VisitBinaryExpression(Binary binary)
+    public unsafe object? VisitBinaryExpression(Binary binary)
     {
+        // RuntimeType
         var left = Evaluate(binary.Left);
         var right = Evaluate(binary.Right);
+        
+        if (left is not RuntimeType rtLeft || right is not RuntimeType rtRight)
+        {
+            throw new RuntimeErrorException("Could not perform binary operation. Operands of unknown types");
+        }
 
         switch (binary.Operator.Type)
         {
@@ -37,15 +43,23 @@ internal class Interpreter : IExpressionVisitor<object?, object?>, IStatementVis
             {
                 // TODO: For non-primitive mint types. The interpreter will find the mint handler for this cast
                 // TODO: and call it to achieve the result
-                
-                // L, R should be runtime types
-                
-                /*return left switch
+                switch (rtLeft.TypeName)
                 {
-                    double d when right is double d1 => d + d1,
-                    string s when right is string s1 => s + s1,
-                    _ => throw new RuntimeErrorException("Operands must be two numbers or two strings.")
-                };*/
+                    case "i32":
+                    {
+                        switch (rtRight.TypeName)
+                        {
+                            case "i32":
+                            {
+                                var newValue = *(int*)rtLeft.Value + *(int*)rtRight.Value;
+                                return RuntimeType.CreateFrom(newValue);
+                            }
+                        }
+                        
+                        break;
+                    }
+                }
+                throw new NotImplementedException();
             }
             case TokenType.Minus:
             {
@@ -147,7 +161,7 @@ internal class Interpreter : IExpressionVisitor<object?, object?>, IStatementVis
 
     public object? VisitVariableExpression(Variable variable)
     {
-        return environment.Get(variable.Name);
+        return environment.Get(variable.Name.Value?.ToString()!);
     }
 
     public object? VisitFunctionCallExpression(FunctionCall call)
@@ -217,20 +231,27 @@ internal class Interpreter : IExpressionVisitor<object?, object?>, IStatementVis
         return result;
     }
 
-    public object? VisitDebugStatement(Debug debug)
+    public unsafe object? VisitDebugStatement(Debug debug)
     {
         var builder = new StringBuilder();
         foreach (var expression in debug.Parameters)
         {
+            // Should be a RuntimeType
             var value = Evaluate(expression);
 
-            if (value == null)
+            if (value is not RuntimeType rtType)
             {
-                builder.Append("null");
+                builder.Append("undefined");
             }
             else
             {
-                builder.Append(value);
+                switch (rtType.TypeName)
+                {
+                    case "i32":
+                        var intValue = *(int*)rtType.Value;
+                        builder.Append(intValue);
+                        break;
+                }
             }
         }
 
@@ -285,7 +306,7 @@ internal class Interpreter : IExpressionVisitor<object?, object?>, IStatementVis
             runtimeValue = ImplicitCast(runtimeValue, let.TypeName);
         }
 
-        environment.PushStack(runtimeValue);
+        environment.PushStack(runtimeValue, let.Name.Value?.ToString());
         return let;
     }
 
