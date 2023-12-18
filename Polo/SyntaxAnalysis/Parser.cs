@@ -10,7 +10,7 @@ internal class Parser
 {
     private int current;
     private readonly ImmutableArray<Token> source;
-    private readonly Dictionary<string, DefinedType> foundTypes;
+    private readonly Dictionary<string, MintType> foundTypes;
 
     public Parser(ImmutableArray<Token> source)
     {
