@@ -3,6 +3,8 @@ using Polo.Lexer;
 using Polo.Runtime;
 using Polo.SyntaxAnalysis;
 
+namespace Polo;
+
 public class MintRepl
 {
     private readonly List<string> replPrevious = new();

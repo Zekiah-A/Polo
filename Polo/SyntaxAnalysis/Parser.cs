@@ -10,7 +10,9 @@ internal class Parser
 {
     private int current;
     private readonly ImmutableArray<Token> source;
-    private readonly Dictionary<string, MintType> foundTypes;
+    // AST - All objects in the top level of these collections are global (file) scope
+    public List<MintProperty> properties;
+    public List<MintFunction> methods;
 
     public Parser(ImmutableArray<Token> source)
     {
@@ -54,10 +56,11 @@ internal class Parser
         Expression? initializer = null;
 
         if (Match(TokenType.Equal))
+        {
             initializer = Expression();
+        }
         
-        // Because variables can be assigned without a value.
-        return new Def(name, initializer);
+        return new Def((string) name.Value, initializer);
     }
 
     private void ValidateType(Token typeToken)
@@ -81,7 +84,7 @@ internal class Parser
         }
 
         // Because variables can be assigned without a value.
-        return new Let(name, typeName, initializer);
+        return new Let((string) name.Value, typeName, initializer);
     }
 
     private Statement Statement()
@@ -378,7 +381,7 @@ internal class Parser
         
         if (Match(TokenType.Identifier))
         {
-            return new Variable(Previous());
+            return new Variable((string) Previous().Value);
         }
         
         if (Match(TokenType.LeftParen))

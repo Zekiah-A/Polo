@@ -103,7 +103,7 @@ internal unsafe class MintEnvironment
         throw new RuntimeErrorException($"Undefined variable '{name}'");
     }
 
-    public void Assign(Token token, object value)
+    public void Assign(string name, object value)
     {
         /*if (token.Value is not null)
         {
@@ -143,6 +143,6 @@ internal unsafe class MintEnvironment
             }
         }*/
 
-        throw new RuntimeErrorException($"Undefined variable '{token}'");
+        throw new RuntimeErrorException($"Undefined variable '{name}'");
     }
 }

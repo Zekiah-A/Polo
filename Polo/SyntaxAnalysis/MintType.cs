@@ -24,4 +24,9 @@ internal class MintType
         Methods = new List<MintFunction>();
         OperatorOverloads = new Dictionary<TokenType, MintFunction>();
     }
+
+    public int CalcSize()
+    {
+        return 0;
+    }
 }

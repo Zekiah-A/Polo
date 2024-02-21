@@ -35,7 +35,35 @@ internal static class TypeInformation
         "void",
         "char"
     };
-    
+
+    public static string GetFormatString(string type)
+    {
+        return type switch
+        {
+            "u8" => "%hhu",
+            "i8" => "%hhd",
+            "u16" => "%hu",
+            "i16" => "%hd",
+            "u32" => "%u",
+            "i32" => "%d",
+            "u64" => "%llu",
+            "i64" => "%lld",
+            "u128" => "%llu", // Assuming long long long is not supported, %llu is the closest for unsigned 128-bit integers.
+            "i128" => "%lld", // Assuming long long long is not supported, %lld is the closest for signed 128-bit integers.
+            "f16" => "%f", // No direct equivalent, using %f for float.
+            "f32" => "%f",
+            "f64" => "%lf", // Assuming long double is not supported, %lf is the closest for double.
+            "f128" => "%Lf", // Assuming long double is not supported, %Lf is the closest for long double.
+            "int" => "%d",
+            "uint" => "%u",
+            "float" => "%f",
+            "bool" => "%d",
+            "void" => "%p", // No direct equivalent, using %p for void pointer.
+            "char" => "%c",
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, "This type can not be used in a format string")
+        };
+    }
+
     public static int GetSize(TokenType tokenType)
     {
         return tokenType switch

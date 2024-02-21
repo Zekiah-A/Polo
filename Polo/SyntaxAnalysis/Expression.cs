@@ -44,7 +44,7 @@ internal record Unary(Token Operator, Expression Right) : Expression
         => visitor.VisitUnaryExpression(this);
 }
 
-internal record Variable(Token Name) : Expression
+internal record Variable(string Name) : Expression
 {
     public override T Accept<T, TContext>(IExpressionVisitor<T, TContext> visitor)
         => visitor.VisitVariableExpression(this);
@@ -57,7 +57,7 @@ internal record FunctionCall(Token Name, IReadOnlyList<Expression> Parameters) :
 
 }
 
-internal record Assign(Token Name, Expression Value) : Expression
+internal record Assign(string Name, Expression Value) : Expression
 {
     public override T Accept<T, TContext>(IExpressionVisitor<T, TContext> visitor)
         => visitor.VisitAssignExpression(this);

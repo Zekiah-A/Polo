@@ -1,5 +1,6 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Parsing;
+using Polo;
 
 var interpretOption = new Option<FileInfo?>(
     name: "--interpret",
@@ -11,8 +12,8 @@ var compileOption = new Option<FileInfo?>(
 var rootCommand = new RootCommand("Preview Mint programming language analyser and interpreter");
 rootCommand.AddOption(interpretOption);
 rootCommand.SetHandler(InterpretFile, interpretOption);
-//rootCommand.AddOption(compileOption);
-//rootCommand.SetHandler(CompileFile, compileOption);
+rootCommand.AddOption(compileOption);
+rootCommand.SetHandler(CompileFile, compileOption);
 
 return await rootCommand.InvokeAsync(args);
 
@@ -47,6 +48,6 @@ static void CompileFile(FileInfo? fileInfo)
     {
         var environment = new MintRunner();
         var source = File.ReadAllText(fileInfo.FullName);
-        environment.Compile(source);
+        environment.CompileQBE(source);
     }
 }

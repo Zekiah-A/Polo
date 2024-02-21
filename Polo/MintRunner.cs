@@ -1,8 +1,10 @@
 ﻿using Polo.Exceptions;
 using Polo.Lexer;
-using Polo.Lowering;
 using Polo.Runtime;
 using Polo.SyntaxAnalysis;
+using Polo.Lowering;
+
+namespace Polo;
 
 public class MintRunner
 {
@@ -21,15 +23,14 @@ public class MintRunner
         }
     }
     
-    public Task Compile(string source)
+    public Task CompileQBE(string source)
     {
         try
         {
-            /*var interpreter = new ILInterpreterVM();
             var tokens = new Scanner(source).Run();
             var statements = new Parser(tokens).Run();
-            var loadedObject = new ILConverter(statements).Run();
-            interpreter.Run(loadedObject);*/
+            var irResult = new ILConverter(statements).Run(statements);
+            var runner = new Asssembly(irResult).Run();
         }
         catch (Exception error) when (error is ScanningErrorException or ParsingErrorException or RuntimeErrorException)
         {

@@ -161,7 +161,7 @@ internal class Interpreter : IExpressionVisitor<object?, object?>, IStatementVis
 
     public object? VisitVariableExpression(Variable variable)
     {
-        return environment.Get(variable.Name.Value?.ToString()!);
+        return environment.Get(variable.Name.ToString()!);
     }
 
     public object? VisitFunctionCallExpression(FunctionCall call)
@@ -306,7 +306,7 @@ internal class Interpreter : IExpressionVisitor<object?, object?>, IStatementVis
             runtimeValue = ImplicitCast(runtimeValue, let.TypeName);
         }
 
-        environment.PushStack(runtimeValue, let.Name.Value?.ToString());
+        environment.PushStack(runtimeValue, let.Name?.ToString());
         return let;
     }
 

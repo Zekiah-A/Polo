@@ -39,13 +39,13 @@ internal record If(Expression Condition, Statement ThenBranch, Statement? ElseBr
         => visitor.VisitIfStatement(this);
 }
 
-internal record Let(Token Name, string TypeName, Expression? Initializer) : Statement
+internal record Let(string Name, string TypeName, Expression? Initializer) : Statement
 {
     public override T Accept<T>(IStatementVisitor<T> visitor)
         => visitor.VisitLetStatement(this);
 }
 
-internal record Def(Token Name, Expression? Initializer) : Statement
+internal record Def(string Name, Expression? Initializer) : Statement
 {
     public override T Accept<T>(IStatementVisitor<T> visitor)
         => visitor.VisitDefStatement(this);
