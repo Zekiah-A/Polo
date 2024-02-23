@@ -365,3 +365,11 @@ FodyWeavers.xsd
 #IntelliJ idea
 .idea/
 .vscode/
+
+# Project
+Polo.Tests/test.ssa
+Polo.Tests/test.s
+Polo.Tests/test
+Polo.Tests/out.ssa
+Polo.Tests/out.s
+Polo.Tests/out

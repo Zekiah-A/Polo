@@ -293,9 +293,9 @@ internal class Interpreter : IExpressionVisitor<object?, object?>, IStatementVis
     public object? VisitLetStatement(Let let)
     {
         object? value = null;
-        if (let.Initializer != null)
+        if (let.Initialiser != null)
         {
-            value = Evaluate(let.Initializer);
+            value = Evaluate(let.Initialiser);
         }
         if (value is not RuntimeType runtimeValue)
         {

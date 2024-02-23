@@ -16,4 +16,7 @@
       <_ContentIncludedByDefault Remove="Nephrite\obj\project.assets.json" />
       <_ContentIncludedByDefault Remove="Nephrite\obj\project.packagespec.json" />
     </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="OneOf" Version="3.0.263" />
+    </ItemGroup>
 </Project>

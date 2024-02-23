@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Extensions.Primitives;
+using OneOf;
 using Polo.Exceptions;
 using Polo.Lexer;
 using Polo.Runtime;
@@ -8,9 +10,8 @@ using Polo.SyntaxAnalysis;
 
 namespace Polo.Lowering;
 
-internal unsafe class ILConverter : IExpressionVisitor<object?, object?>, IStatementVisitor<object?>
+internal unsafe class ILConverter : IExpressionVisitor<ContextSource, object?>, IStatementVisitor<string>
 {
-    private ILState state;
     private StringBuilder data;
     private Dictionary<string, List<string>> definedIdentifiers; // Method, Identifier
 
@@ -21,7 +22,6 @@ internal unsafe class ILConverter : IExpressionVisitor<object?, object?>, IState
             { "main", new List<string> {} }
         };
         data = new StringBuilder();
-        state = ILState.Default;
     }
 
     public string Run(ImmutableArray<Statement> statements)
@@ -33,7 +33,7 @@ internal unsafe class ILConverter : IExpressionVisitor<object?, object?>, IState
         foreach (var statement in statements)
         {
             var source = (string) Execute(statement);
-            ilBuilder.AppendLine(source);
+            ilBuilder.Append(source);
         }
 
         ilBuilder.AppendLine("    ret 0");
@@ -42,163 +42,259 @@ internal unsafe class ILConverter : IExpressionVisitor<object?, object?>, IState
         return ilBuilder.ToString();
     }
     
-    private object? Evaluate(Expression expression)
+    private ContextSource Evaluate(Expression expression)
     {
         return expression.Accept(this);
     }
 
-    public object? VisitBinaryExpression(Binary binary)
+    public ContextSource VisitBinaryExpression(Binary binary)
     {
         var leftSource = Evaluate(binary.Left);
         var rightSource = Evaluate(binary.Right);
+        var ilBuilder = new StringBuilder();
 
-        var source = $"add {leftSource}, {rightSource}";
-        return source.ToString();
+        // Define left and right if they are literals, otherwise put L and R source
+        switch (binary.Operator.Type)
+        {
+            case TokenType.Plus:
+                ilBuilder.Append("add ");
+                ilBuilder.Append(leftSource.Source);
+                ilBuilder.Append(", ");
+                ilBuilder.Append(rightSource.Source);
+                break;
+            case TokenType.EqualEqual:
+                ilBuilder.Append("ceqw " );
+                ilBuilder.Append(leftSource.Source);
+                ilBuilder.Append(", "); 
+                ilBuilder.Append(rightSource.Source);
+                break;
+            default:
+                throw new NotImplementedException($"Can't convert operator {binary.Operator.Type}.");
+        }
+        var source = ilBuilder.ToString();
+
+        // Pass down context until a line statement can handle it
+        var contextBuilder = new StringBuilder();
+        contextBuilder.Append(leftSource.Context);
+        contextBuilder.Append(rightSource.Context);
+        var context = contextBuilder.ToString();
+
+        var contextSource = new ContextSource(source, SourceType.Instruction, context);
+        return contextSource;
     }
 
-    public object? VisitGroupingExpression(Grouping grouping)
+    public ContextSource VisitGroupingExpression(Grouping grouping)
     {
         throw new NotImplementedException();
     }
     
-    public object? VisitLiteralExpression(Literal literal)
-    {
-        var literalObject = ILLiteral.CreateFrom(literal.Value);
-        return literalObject;
+    public ContextSource VisitLiteralExpression(Literal literal)
+    {        
+        // WORKAROUND: Get rid of the literal, define it into a asm variable,
+        // with the let definiton as the statement context, and a variable expression
+        // that is their identifier. See ContextSource summary for more info.
+        var literalVariable = $"%{UniqueIdentifier("main")}";
+        var ilBuilder = new StringBuilder();
+        ilBuilder.Append("    ");
+        ilBuilder.Append(literalVariable);
+        ilBuilder.Append(" =w ");
+        ilBuilder.Append("sub ");
+        ilBuilder.Append(literal.Value);
+        ilBuilder.Append(", 0");
+        ilBuilder.AppendLine();
+        var definitionStatement = ilBuilder.ToString();
+
+        var contextSource = new ContextSource(literalVariable, SourceType.Variable, definitionStatement);
+        return contextSource;
     }
 
-    public object? VisitUnaryExpression(Unary unary)
-    {
-        throw new NotImplementedException();
-    }
-
-    public object? VisitVariableExpression(Variable variable)
-    {
-        return "%" + variable.Name;
-        //throw new NotImplementedException();
-    }
-
-    public object? VisitAssignExpression(Assign assign)
-    {
-        throw new NotImplementedException();
-    }
-
-    public object? VisitLogicalExpression(Logical logical)
+    public ContextSource VisitUnaryExpression(Unary unary)
     {
         throw new NotImplementedException();
     }
 
-    public object? VisitFunctionCallExpression(FunctionCall functionCall)
+    public ContextSource VisitVariableExpression(Variable variable)
+    {
+        var contextSource = new ContextSource($"%{variable.Name}", SourceType.Variable);
+        return contextSource;
+    }
+
+    public ContextSource VisitAssignExpression(Assign assign)
     {
         throw new NotImplementedException();
     }
 
-    public object? VisitBlockStatement(Block block)
+    public ContextSource VisitLogicalExpression(Logical logical)
     {
         throw new NotImplementedException();
     }
 
-    public object? VisitStatementExpression(StatementExpression statementExpression)
+    public ContextSource VisitFunctionCallExpression(FunctionCall functionCall)
     {
         throw new NotImplementedException();
     }
 
-    public object? VisitIfStatement(If @if)
+    public string VisitBlockStatement(Block block)
     {
         throw new NotImplementedException();
     }
 
-    public object? VisitLetStatement(Let let)
+    public string VisitStatementExpression(StatementExpression statementExpression)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string VisitIfStatement(If @if)
     {
         var ilBuilder = new StringBuilder();
-        ilBuilder.Append("    %");
-        ilBuilder.Append(let.Name);
-        ilBuilder.Append(" =");
+        ContextSource conditionSource = Evaluate(@if.Condition);
+        ilBuilder.AppendLine(conditionSource.Context);
+        var condition = conditionSource.Source;
+        if (conditionSource.SourceType == SourceType.Instruction)
+        {
+            // WORKAROUND: We can only work with Variables/Data locations, so create a
+            // variable expression from the instruction expression
+            var conditionName = UniqueIdentifier("main");
+            var letStatement = new Let(conditionName, "i32", @if.Condition);
+            var letSource = Execute(letStatement);
+            ilBuilder.AppendLine(letSource);
+            condition = $"%{conditionName}";
+        }
+        else if (conditionSource.SourceType is SourceType.Label)
+        {
+            throw new InvalidOperationException("If statement condition can not be a jump label");
+        }
 
-        definedIdentifiers["main"].Add(let.Name);
-
-        object? value = null;
-        if (let.Initializer is not null)
-        {
-            value = Evaluate(let.Initializer);
-        }
-        if (value is null)
-        {
-            throw new RuntimeErrorException(
-                $"Could not initialise variable, no initialiser provided");
-        }
-        if (value is ILLiteral ilType)  // Literal assignment
-        {
-            ilBuilder.Append("w sub ");
-            ilBuilder.Append(ilType.Value);
-            ilBuilder.Append(", 0");
-        }
-        else if (value is string expressionValue) // Expr assignment
-        {
-            ilBuilder.Append("w ");
-            ilBuilder.Append(expressionValue);
-        }
+        var ifIdentifier = UniqueIdentifier("main");
+        var elseIdentifier = UniqueIdentifier("main");
+        var endIdentifier = UniqueIdentifier("main");
+        
+        // Jmp
+        ilBuilder.Append("    jnz ");
+        ilBuilder.Append(condition);
+        ilBuilder.Append(", @");
+        ilBuilder.Append(ifIdentifier);
+        ilBuilder.Append(", @");
+        ilBuilder.Append(elseIdentifier);
+        ilBuilder.Append("          # condition");
         ilBuilder.AppendLine();
+
+        // If label
+        ilBuilder.Append("@");
+        ilBuilder.Append(ifIdentifier);
+        ilBuilder.Append("                         # if");
+        ilBuilder.AppendLine();
+        // If jmp to end
+        ilBuilder.Append("    jmp @");
+        ilBuilder.Append(endIdentifier);
+        ilBuilder.AppendLine();
+        
+        // Else label
+        ilBuilder.Append("@");
+        ilBuilder.Append(elseIdentifier);
+        ilBuilder.Append("                         # else");
+        ilBuilder.AppendLine();
+
+        ilBuilder.Append("@");
+        ilBuilder.Append(endIdentifier);
+        ilBuilder.Append("                         # endif");
+        ilBuilder.AppendLine();
+
         return ilBuilder.ToString();
     }
 
-    public object? VisitDefStatement(Def def)
+    public string VisitLetStatement(Let let)
+    {
+        var ilBuilder = new StringBuilder();
+        definedIdentifiers["main"].Add(let.Name);
+
+        if (let.Initialiser is not null)
+        {
+            // WORKAROUND: Handles an edge case of defintion loops, where a literal (does not count as expression)
+            // neeeds to be defined as a variable expression. See ContextSource summary for more info.
+            string value;
+            if (let.Initialiser is Literal literalCondition)
+            {
+                value = $"sub {literalCondition.Value}, 0";
+            }
+            else
+            {
+                var valueSource = Evaluate(let.Initialiser);
+                ilBuilder.AppendLine(valueSource.Context);
+                value = valueSource.Source;
+            }
+
+            ilBuilder.Append("    %");
+            ilBuilder.Append(let.Name);
+            ilBuilder.Append(" =w ");
+            ilBuilder.Append(value);
+            ilBuilder.AppendLine();
+        }
+        else
+        {
+            throw new NotImplementedException("Let statements can currently only be defined with an initialiser");
+        }
+
+        return ilBuilder.ToString();
+    }
+
+    public string VisitDefStatement(Def def)
     {
         throw new NotImplementedException();
     }
 
-    public object? VisitWhileStatement(While @while)
+    public string VisitWhileStatement(While @while)
     {
         throw new NotImplementedException();
     }
 
-    public object? VisitFunctionStatement(Function function)
+    public string VisitFunctionStatement(Function function)
     {
         throw new NotImplementedException();
     }
 
     private readonly string identifierChars = "abcdefghijklmnopqrstuvwxyz";
 
+    // TODO: Create different identifier methods for within methods, data entries and labels.
     private string UniqueIdentifier(string method)
     {
         var i = 0;
-        var identifier = (Span<char>) stackalloc char[1];
+        var identifierChars = (Span<char>) stackalloc char[1];
         var methodIdentifiers = definedIdentifiers[method];
         do
         {
-            var next = identifierChars[i];
-            if (i == identifierChars.Length - 1)
+            var next = this.identifierChars[i];
+            if (i == this.identifierChars.Length - 1)
             {
-                var newIdentifier = (Span<char>) stackalloc char[identifier.Length + 1];
-                identifier.CopyTo(newIdentifier);
-                identifier = newIdentifier;
+                var newIdentifier = (Span<char>) stackalloc char[identifierChars.Length + 1];
+                identifierChars.CopyTo(newIdentifier);
+                identifierChars = newIdentifier;
             }
 
-            identifier[identifier.Length - 1] = next;
+            identifierChars[identifierChars.Length - 1] = next;
             i++;
         }
-        while (methodIdentifiers.Contains(identifier.ToString()));
-        return identifier.ToString();
+        while (methodIdentifiers.Contains(identifierChars.ToString()));
+        var identifier = identifierChars.ToString();
+        methodIdentifiers.Add(identifier);
+        return identifier;
     }
 
-    public object? VisitDebugStatement(Debug debug)
+    public string VisitDebugStatement(Debug debug)
     {
         var ilBuilder = new StringBuilder();
         var paramIdentifiers = new List<ParamIdentifier>();
 
-        foreach (var param in debug.Parameters)
+        foreach (var paramExpression in debug.Parameters)
         {
-            // All expressions must be turned into assignments
-            var paramIdentifier = UniqueIdentifier("main");
-            var let = new Let(paramIdentifier, "i32", param);
-            var source = Execute(let);
-            paramIdentifiers.Add(new ParamIdentifier(paramIdentifier,  "i32"));
-            ilBuilder.Append(source);
+            var paramSource = Evaluate(paramExpression);
+            ilBuilder.AppendLine(paramSource.Context);
+            paramIdentifiers.Add(new ParamIdentifier(paramSource.Source,  "i32"));
         }
 
         ilBuilder.Append("    call $printf(");
         ilBuilder.Append("l $");
-        var dataIdentifier = UniqueIdentifier("main"); // TODO:  Data should have  it's own identifiers  tbh
+        var dataIdentifier = UniqueIdentifier("main");
         ilBuilder.Append(dataIdentifier);
         ilBuilder.Append(", ...");
 
@@ -211,7 +307,7 @@ internal unsafe class ILConverter : IExpressionVisitor<object?, object?>, IState
             for (var i = 0; i < paramIdentifiers.Count; i++)
             {
                 var identifier = paramIdentifiers[i];
-                ilBuilder.Append(", w %");
+                ilBuilder.Append(", w ");
                 ilBuilder.Append(identifier.Name);
 
                 // Add printf formatters to data
@@ -230,12 +326,12 @@ internal unsafe class ILConverter : IExpressionVisitor<object?, object?>, IState
         return ilBuilder.ToString();
     }
 
-    public object? VisitReturnStatement(Return @return)
+    public string VisitReturnStatement(Return @return)
     {
         throw new NotImplementedException();
     }
 
-    private object? Execute(Statement statement)
+    private string Execute(Statement statement)
     {
         return statement.Accept(this);
     }

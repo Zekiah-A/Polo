@@ -111,7 +111,7 @@ internal class Scanner
                 // If we (^) are at end of indents section, such as "    codecode" "   ^codecode" and the next token
                 // is not an indent but there is a space, then they have used a space to indent
                 var withinIndents = tokens.Count > 0 && !lineTokens.Any(token => token.Type is not (TokenType.Indent or TokenType.UnIndent));
-                if (withinIndents && tokens[current].Type is not (TokenType.Indent or TokenType.UnIndent))
+                if (withinIndents /*&& tokens[current].Type is not (TokenType.Indent or TokenType.UnIndent)*/)
                 {
                     Warn("Character ' ' has no semantic meaning and will be ignored when defining block scopes. Use 'tab' character instead");
                 }
