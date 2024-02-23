@@ -144,6 +144,19 @@ internal unsafe class ILConverter : IExpressionVisitor<ContextSource, object?>, 
         throw new NotImplementedException();
     }
 
+    /// <summary>
+    /// Convert instruction expression to variable expression in cases instruction can not be used
+    /// </summary>
+    /// <param name="name">Name of variable (without % variable indetifier)</param>
+    /// <param name="instructionYielder">Expression which is resulting in an instruction ContextSource being produced</param>
+    /// <returns>Converted variable ContextSource</returns>
+    private ContextSource InstructionToVariable(string name, string type, Expression instructionYielder)
+    {
+        var letStatement = new Let(name, type, instructionYielder);
+        var letSource = Execute(letStatement);
+        return new ContextSource($"%{name}", SourceType.Variable, letSource);
+    }
+
     public string VisitIfStatement(If @if)
     {
         var ilBuilder = new StringBuilder();
@@ -155,10 +168,9 @@ internal unsafe class ILConverter : IExpressionVisitor<ContextSource, object?>, 
             // WORKAROUND: We can only work with Variables/Data locations, so create a
             // variable expression from the instruction expression
             var conditionName = UniqueIdentifier("main");
-            var letStatement = new Let(conditionName, "i32", @if.Condition);
-            var letSource = Execute(letStatement);
-            ilBuilder.AppendLine(letSource);
-            condition = $"%{conditionName}";
+            var variableSource = InstructionToVariable(conditionName, "i32", @if.Condition);
+            ilBuilder.AppendLine(variableSource.Context);
+            condition = variableSource.Source;
         }
         else if (conditionSource.SourceType is SourceType.Label)
         {
@@ -288,8 +300,18 @@ internal unsafe class ILConverter : IExpressionVisitor<ContextSource, object?>, 
         foreach (var paramExpression in debug.Parameters)
         {
             var paramSource = Evaluate(paramExpression);
-            ilBuilder.AppendLine(paramSource.Context);
-            paramIdentifiers.Add(new ParamIdentifier(paramSource.Source,  "i32"));
+            if (paramSource.SourceType == SourceType.Instruction)
+            {
+                var paramName = UniqueIdentifier("main");
+                var variableSource = InstructionToVariable(paramName, "i32", paramExpression);
+                ilBuilder.AppendLine(variableSource.Context);
+                paramIdentifiers.Add(new ParamIdentifier(variableSource.Source,  "i32"));
+            }
+            else
+            {
+                ilBuilder.AppendLine(paramSource.Context);
+                paramIdentifiers.Add(new ParamIdentifier(paramSource.Source,  "i32"));
+            }
         }
 
         ilBuilder.Append("    call $printf(");
