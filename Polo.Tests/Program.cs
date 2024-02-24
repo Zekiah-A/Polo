@@ -1,5 +1,6 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using Polo;
 
 var interpretOption = new Option<FileInfo?>(
@@ -48,6 +49,11 @@ static void CompileFile(FileInfo? fileInfo)
     {
         var environment = new MintRunner();
         var source = File.ReadAllText(fileInfo.FullName);
+
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
         environment.CompileQBE(source);
+        stopwatch.Stop();
+        Console.Error.WriteLine($"[Compliation finished in {stopwatch.ElapsedMilliseconds}ms]");
     }
 }

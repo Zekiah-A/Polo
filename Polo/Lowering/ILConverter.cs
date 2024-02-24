@@ -89,21 +89,42 @@ internal unsafe class ILConverter : IExpressionVisitor<ContextSource, object?>, 
     }
     
     public ContextSource VisitLiteralExpression(Literal literal)
-    {        
+    {
         // WORKAROUND: Get rid of the literal, define it into a asm variable,
         // with the let definiton as the statement context, and a variable expression
         // that is their identifier. See ContextSource summary for more info.
         var literalVariable = $"%{UniqueIdentifier("main")}";
         var ilBuilder = new StringBuilder();
-        ilBuilder.Append("    ");
-        ilBuilder.Append(literalVariable);
-        ilBuilder.Append(" =w ");
-        ilBuilder.Append("sub ");
-        ilBuilder.Append(literal.Value);
-        ilBuilder.Append(", 0");
-        ilBuilder.AppendLine();
-        var definitionStatement = ilBuilder.ToString();
 
+        if (literal.Type == LiteralType.String)
+        {
+            // Add data entry
+            var dataIdentifier = $"${UniqueIdentifier("main")}";
+            data.Append("data ");
+            data.Append(dataIdentifier);
+            data.Append(" = { b \"");
+            data.Append(literal.Value);
+            data.Append("\", b 0 }");
+            data.AppendLine();
+
+            // Reference data entry
+            ilBuilder.Append("    ");
+            ilBuilder.Append(literalVariable);
+            ilBuilder.Append(" =l sub ");
+            ilBuilder.Append(dataIdentifier);
+            ilBuilder.Append(", 0");
+        }
+        else if (literal.Type == LiteralType.Integer)
+        {
+            ilBuilder.Append("    ");
+            ilBuilder.Append(literalVariable);
+            ilBuilder.Append(" =w ");
+            ilBuilder.Append("sub ");
+            ilBuilder.Append(literal.Value);
+            ilBuilder.Append(", 0");
+        }
+
+        var definitionStatement = ilBuilder.ToString();
         var contextSource = new ContextSource(literalVariable, SourceType.Variable, definitionStatement);
         return contextSource;
     }
@@ -265,31 +286,43 @@ internal unsafe class ILConverter : IExpressionVisitor<ContextSource, object?>, 
         throw new NotImplementedException();
     }
 
-    private readonly string identifierChars = "abcdefghijklmnopqrstuvwxyz";
-
     // TODO: Create different identifier methods for within methods, data entries and labels.
     private string UniqueIdentifier(string method)
     {
-        var i = 0;
-        var identifierChars = (Span<char>) stackalloc char[1];
         var methodIdentifiers = definedIdentifiers[method];
-        do
+
+        var stringLength = 1;
+        while (true)
         {
-            var next = this.identifierChars[i];
-            if (i == this.identifierChars.Length - 1)
+            var buffer = (Span<char>) stackalloc char[stringLength];
+            buffer.Fill('a'); // Initialise with a
+
+            while (true)
             {
-                var newIdentifier = (Span<char>) stackalloc char[identifierChars.Length + 1];
-                identifierChars.CopyTo(newIdentifier);
-                identifierChars = newIdentifier;
+                var generated = new string(buffer);
+                if (!methodIdentifiers.Contains(generated))
+                {
+                    methodIdentifiers.Add(generated);
+                    return generated;
+                }
+
+                var index = buffer.Length - 1;
+                while (index >= 0 && buffer[index] == 'z')
+                {
+                    buffer[index] = 'a';
+                    index--;
+                }
+
+                // All combinations exhausted
+                if (index < 0)
+                {
+                    break;
+                }
+                buffer[index]++;
             }
 
-            identifierChars[identifierChars.Length - 1] = next;
-            i++;
+            stringLength++;
         }
-        while (methodIdentifiers.Contains(identifierChars.ToString()));
-        var identifier = identifierChars.ToString();
-        methodIdentifiers.Add(identifier);
-        return identifier;
     }
 
     public string VisitDebugStatement(Debug debug)
