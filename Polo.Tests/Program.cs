@@ -1,4 +1,4 @@
-﻿using System.CommandLine;
+using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
 using Polo;
@@ -52,7 +52,7 @@ static void CompileFile(FileInfo? fileInfo)
 
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-        environment.CompileQBE(source);
+        environment.Compile(source);
         stopwatch.Stop();
         Console.Error.WriteLine($"[Compliation finished in {stopwatch.ElapsedMilliseconds}ms]");
     }

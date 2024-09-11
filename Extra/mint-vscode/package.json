@@ -1,0 +1,44 @@
+{
+	"name": "mint",
+	"displayName": "mint",
+	"description": "",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"contributes": {
+		"languages": [{
+			"id": "mint",
+			"aliases": ["Mint", "mint"],
+			"extensions": [".mt"],
+			"configuration": "./language-configuration.json",
+			"icon": { "dark": "./icon.svg", "light": "./icon.svg" }
+		}],
+		"grammars": [{
+			"language": "mint",
+			"scopeName": "source.mint",
+			"path": "./syntaxes/mint.tmLanguage.json"
+		}],
+		"semanticTokenTypes": [
+			{
+				"id": "axiom",
+				"superType": "keyword",
+				"description": "An axiom declaration"
+			}
+		],
+		"configurationDefaults": {
+			"editor.tokenColorCustomizations": {
+				"textMateRules": [{
+					"scope": ["keyword.axiom"],
+					"settings": {
+						"fontStyle": "bold underline",
+						"foreground": "#fff"
+					}
+				}]
+			}
+		}
+	}
+}

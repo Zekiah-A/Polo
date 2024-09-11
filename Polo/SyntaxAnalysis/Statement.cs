@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Polo.Lexer;
+﻿using Polo.Lexer;
 
 namespace Polo.SyntaxAnalysis;
 
@@ -19,6 +18,7 @@ internal interface IStatementVisitor<out T>
     T? VisitFunctionStatement(Function function);
     T? VisitDebugStatement(Debug debug);
     T? VisitReturnStatement(Return @return);
+    T? VisitTypeStatement(Type type);
 }
 
 internal record Block(List<Statement> Statements) : Statement
@@ -57,7 +57,7 @@ internal record While(Expression Condition, Statement Body) : Statement
         => visitor.VisitWhileStatement(this);
 }
 // TODO: Token type for Parameters is cursed, use declaration type instead! 
-internal record Function(Token Name, List<Token> Parameters, List<Statement> Body, Token returnType) : Statement
+internal record Function(Token Name, List<Token> Parameters, List<Statement> Body, string ReturnType) : Statement
 {
     public override T Accept<T>(IStatementVisitor<T> visitor)
         => visitor.VisitFunctionStatement(this);
@@ -67,6 +67,12 @@ internal record Return(Expression? Expression) : Statement
 {
     public override T Accept<T>(IStatementVisitor<T> visitor)
         => visitor.VisitReturnStatement(this);
+}
+
+internal record Type() : Statement
+{
+    public override T Accept<T>(IStatementVisitor<T> visitor)
+        => visitor.VisitTypeStatement(this);
 }
 
 internal record Debug(List<Expression> Parameters) : Statement

@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<!DOCTYPE language>
+<language name="Mint" alternativeNames="Ax;Glow" version="1" kateversion="5.0" section="Sources" extensions="*.mt" mimetype="text/x-mint-src;text/x-mint-hde">
+	<highlighting>
+		<list name="fn">
+			<item>fn</item>
+		</list>
+		<list name="type">
+			<item>type</item>
+		</list>
+		<!--Data keywords-->
+		<list name="data-keywords">
+			<item>sizeof</item>
+			<item>typeof</item>
+			<item>let</item>
+			<item>const</item>
+			<item>get</item>
+			<item>defer</item>
+			<item>impl</item>
+			<item>copy</item>
+			<item>static</item>
+			<item>def</item>
+			<item>void</item>
+			<item>nullref</item>
+			<item>false</item>
+			<item>true</item>
+			<item>this</item>
+		</list>
+		<!--Control flow-->
+		<list name="control-flow">
+			<item>assert</item>
+			<item>if</item>
+			<item>else</item>
+			<item>while</item>
+			<item>for</item>
+			<item>return</item>
+			<item>induceruntimecrashforrealz</item>
+			<item>import</item>
+			<item>goto</item>
+			<item>break</item>
+		</list>
+		<!--Fixed primitive types-->
+		<list name="primitives">
+			<item>u8</item>
+			<item>i8</item>
+			<item>u16</item>
+			<item>i16</item>
+			<item>u32</item>
+			<item>i32</item>
+			<item>u64</item>
+			<item>i64</item>
+			<item>u128</item>
+			<item>i128</item>
+			<item>u256</item>
+			<item>i256</item>
+			<item>f16</item>
+			<item>f32</item>
+			<item>f64</item>
+			<item>f128</item>
+		</list>
+		<!--System defined primitive types-->
+		<list name="system-primitives">
+			<item>int</item>
+			<item>uint</item>
+			<item>float</item>
+			<item>bool</item>
+		</list>
+		<contexts>
+			<context attribute="Normal Text" lineEndContext="#stay" name="Normal">
+				<DetectSpaces/>
+				<!--Keywords-->
+				<keyword String="fn" attribute="Keyword" context="Function"/>
+				<keyword String="type" attribute="Keyword" context="Type"/>
+				<keyword String="control-flow" attribute="Control Flow" context="#stay"/>
+				<keyword String="data-keywords" attribute="Keyword" context="#stay"/>
+				<!--Types-->
+				<keyword String="primitives" attribute="Type" context="#stay"/>
+				<keyword String="system-primitives" attribute="Type" context="#stay"/>
+				<!--Spaces as indentation-->
+				<RegExpr String="^\s*(?=.*)" aatribute="Error" context="#stay"/>
+			</context>
+		</contexts>
+		<itemDatas>
+			<itemData name="Normal Text" defStyleNum="dsNormal" spellChecking="0"/>
+			<itemData name="Keyword" defStyleNum="dsKeyword" spellChecking="0"/>
+			<itemData name="Type" defStyleNum="dsDataType" spellChecking="0"/>
+			<itemData name="Control Flow" defStyleNum="dsControlFlow" spellChecking="0"/>
+			<itemData name="Comment" defStyleNum="dsComment"/>
+			<itemData name="Number" defStyleNum="dsDecVal" spellChecking="0"/>
+			<itemData name="String" defStyleNum="dsString"/>
+			<itemData name="Error" defStyleNum="dsError" spellChecking="0"/>
+		</itemDatas>
+	</highlighting>
+	<general>
+		<comments>
+			<comment name="singleLine" start="#" position="afterwhitespace"/>
+			<comment name="multiLine" start="##" end="##" region="Comment"/>
+		</comments>
+		<keywords casesensitive="1"/>
+	</general>
+</language>
+<!-- kate: replace-tabs off; tab-width 4; -->

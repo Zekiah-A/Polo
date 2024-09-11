@@ -5,6 +5,7 @@ using System.Text;
 using Polo.Exceptions;
 using Polo.Lexer;
 using Polo.SyntaxAnalysis;
+using Type = Polo.SyntaxAnalysis.Type;
 
 namespace Polo.Runtime;
 
@@ -229,6 +230,11 @@ internal class Interpreter : IExpressionVisitor<object?, object?>, IStatementVis
     {
         var result = Evaluate(@return.Expression);
         return result;
+    }
+
+    public object? VisitTypeStatement(Type type)
+    {
+        throw new NotImplementedException();
     }
 
     public unsafe object? VisitDebugStatement(Debug debug)

@@ -1,13 +1,8 @@
-using Polo.Exceptions;
-using Polo.Lexer;
-using Polo.Runtime;
-using Polo.SyntaxAnalysis;
-
 namespace Polo;
 
 public class MintRepl
 {
-    private readonly List<string> replPrevious = new();
+    private readonly List<string> replPrevious = [];
     private int replPreviousIndex;
 
     public async Task Start()

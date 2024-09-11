@@ -18,7 +18,7 @@ public unsafe struct RuntimeType
     {
         var rtType = new RuntimeType(0);
 
-        if (managed == null)
+        /*if (managed == null)
         {
             rtType.Value = (void*)0;
             rtType.TypeName = "null";
@@ -40,7 +40,7 @@ public unsafe struct RuntimeType
         finally
         {
             handle.Free();
-        }
+        }*/
 
         return rtType;
     }

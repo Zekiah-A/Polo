@@ -1,8 +1,10 @@
-﻿using Polo.Exceptions;
+﻿using System.Runtime.InteropServices;
+using Polo.Exceptions;
 using Polo.Lexer;
 using Polo.Runtime;
 using Polo.SyntaxAnalysis;
 using Polo.Lowering;
+using Polo.TypeAnalysis;
 
 namespace Polo;
 
@@ -23,14 +25,27 @@ public class MintRunner
         }
     }
     
-    public Task CompileQBE(string source)
+    private static TargetArchitecture GetTargetArchitecture()
     {
+        return RuntimeInformation.ProcessArchitecture switch
+        {
+            Architecture.Arm64 => TargetArchitecture.Arm64,
+            Architecture.X64 => TargetArchitecture.Amd64,
+            _ => throw new NotImplementedException("This architecture is not supported.")
+        };
+    }
+    
+    public Task Compile(string source, TargetArchitecture? architecture = null)
+    {
+        architecture ??= GetTargetArchitecture();
+
         try
         {
             var tokens = new Scanner(source).Run();
             var statements = new Parser(tokens).Run();
-            var irResult = new ILConverter(statements).Run(statements);
-            var runner = new Asssembly(irResult).Run();
+            var definedTypes = new TypeAnalyser(statements, architecture).Run();
+            var irResult = new QbeConverter(statements, definedTypes).Run();
+            var runner = new QbeBuilder(irResult, architecture).Run();
         }
         catch (Exception error) when (error is ScanningErrorException or ParsingErrorException or RuntimeErrorException)
         {
@@ -40,7 +55,7 @@ public class MintRunner
         return Task.CompletedTask;
     }
 
-    private void ReportError(string message)
+    private static void ReportError(string message)
         => WriteConsoleColour(ConsoleColor.Red, message);
 
     private static void WriteConsoleColour(ConsoleColor colour, string text)

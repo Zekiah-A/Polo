@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
+﻿using System.Collections.Immutable;
 using Polo.Exceptions;
 using Polo.Lexer;
 
@@ -10,9 +8,6 @@ internal class Parser
 {
     private int current;
     private readonly ImmutableArray<Token> source;
-    // AST - All objects in the top level of these collections are global (file) scope
-    public List<MintProperty> properties;
-    public List<MintFunction> methods;
 
     public Parser(ImmutableArray<Token> source)
     {
@@ -51,40 +46,24 @@ internal class Parser
 
     private Statement DefDeclaration()
     {
-        var name = Consume(TokenType.Identifier, "Expected variable name");
-
-        Expression? initializer = null;
-
-        if (Match(TokenType.Equal))
-        {
-            initializer = Expression();
-        }
-        
-        return new Def((string) name.Value, initializer);
-    }
-
-    private void ValidateType(Token typeToken)
-    {
+        throw new NotImplementedException();
     }
 
     private Statement LetDeclaration()
     {
         var name = Consume(TokenType.Identifier, "Expected variable name");
-        Consume(TokenType.Colon, "Expected colon after variable name");
-        var type = Advance();
-        if (type.Value is not string typeName)
-        {
-            throw Error(type, "Expected type name after variable identifier");
-        }
-        Expression? initializer = null;
 
+        Consume(TokenType.Colon, "Expected colon after variable name");
+        var typeName = Consume(TokenType.Identifier, "Expected variable type");
+
+        // Because variables can be assigned without a value.
+        Expression? initializer = null;
         if (Match(TokenType.Equal))
         {
             initializer = Expression();
         }
 
-        // Because variables can be assigned without a value.
-        return new Let((string) name.Value, typeName, initializer);
+        return new Let((string) name.Value!, (string) typeName.Value!, initializer);
     }
 
     private Statement Statement()
@@ -117,6 +96,11 @@ internal class Parser
         if (Match(TokenType.Return))
         {
             return ReturnStatement();
+        }
+
+        if (Match(TokenType.Type))
+        {
+            return TypeStatement();
         }
         
         return ExpressionStatement();
@@ -173,15 +157,11 @@ internal class Parser
             @params.Add(Advance());
         }
         Consume(TokenType.RightParen, "Expected ')' after function Parameters");
+        
         Consume(TokenType.Colon, "Expected ':' before function return type");
+        var returnType = Consume(TokenType.Identifier, "Expected function return type");
         
-        var returnType = Advance();
-        if (!IsTypeToken(returnType))
-        {
-            throw Error(returnType, "Expected function return type");
-        }
-        
-        return new Function(name, @params, new List<Statement>(), returnType);
+        return new Function(name, @params, new List<Statement>(), (string) returnType.Value!);
     }
 
     private Statement ReturnStatement()
@@ -195,6 +175,11 @@ internal class Parser
         catch (ParsingErrorException e) { }
 
         return new Return(returnExpression);
+    }
+
+    private Statement TypeStatement()
+    {
+        return new Type();
     }
 
     private Statement DebugStatement()
@@ -381,7 +366,7 @@ internal class Parser
         
         if (Match(TokenType.Identifier))
         {
-            return new Variable((string) Previous().Value);
+            return new Variable((string) Previous().Value!);
         }
         
         if (Match(TokenType.LeftParen))
@@ -419,15 +404,7 @@ internal class Parser
 
     private bool CheckType(TokenType type)
         => !IsAtEnd() && Peek().Type == type;
-
-    private static bool IsTypeToken(Token token)
-    {
-        return token.Type is TokenType.U8 or TokenType.I8 or TokenType.U16 or TokenType.I16 or TokenType.U32
-            or TokenType.I32 or TokenType.U64 or TokenType.I64 or TokenType.U128 or TokenType.I128 or TokenType.F16
-            or TokenType.F32 or TokenType.F64 or TokenType.F128 or TokenType.F256 or TokenType.Int or TokenType.UInt
-            or TokenType.Float or TokenType.Bool or TokenType.Void or TokenType.Char or TokenType.Function;
-    }
-
+    
     private bool Match(params TokenType[] types)
     {
         foreach (var type in types)

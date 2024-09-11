@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Polo", "Polo\Polo.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Polo.Tests", "Polo.Tests\Polo.Tests.csproj", "{3779331F-5C52-496D-BEEB-77525AADF242}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Polo.QBE", "Polo.QBE\Polo.QBE\Polo.QBE.csproj", "{9BFD13FD-D429-4F1D-8526-B1D6C3DCDDE0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{3779331F-5C52-496D-BEEB-77525AADF242}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3779331F-5C52-496D-BEEB-77525AADF242}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3779331F-5C52-496D-BEEB-77525AADF242}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9BFD13FD-D429-4F1D-8526-B1D6C3DCDDE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9BFD13FD-D429-4F1D-8526-B1D6C3DCDDE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9BFD13FD-D429-4F1D-8526-B1D6C3DCDDE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9BFD13FD-D429-4F1D-8526-B1D6C3DCDDE0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

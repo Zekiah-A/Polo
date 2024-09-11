@@ -1,6 +1,6 @@
 ﻿namespace Polo.Lexer;
 
-internal enum TokenType
+public enum TokenType
 {
     // Single-character tokens.
     LeftParen, RightParen, LeftBrace, RightBrace, Colon,
@@ -13,22 +13,12 @@ internal enum TokenType
     Less, LessEqual,
     Or, And, BitwiseAnd,
     BitwiseOr,
-
-    // Compiler recognised primitives
-    U8, I8, U16, I16, U32, I32, U64, I64, U128, I128, F16, F32, F64, F128, F256,
-    Int, // size_t,
-    UInt, // usize_t,
-    Float, // 32/64 bit depending on sys
-    Bool, // u8/u1, 1 | 0
-    Void,
-    Char, // uint8_t
-    Function,
     
     // Storage
     SizeOf, TypeOf, Let, Const, Get, Defer, Type, Impl, Copy, Static, Def, NullRef, False, True, This,
     
     // Control
-    Assert, Debug, If, Else, While, For, Return, Crash, Goto, Break,
+    Function, Assert, Debug, If, Else, While, For, Return, Crash, Goto, Break,
         
     // Preprocess
     CompileTime, Import, Include, Line, File, Date, Time, Counter,

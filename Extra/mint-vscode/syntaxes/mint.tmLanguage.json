@@ -1,0 +1,98 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Mint",
+	"patterns": [
+		{ "include": "#invalid" },
+		{ "include": "#fields" },
+		{ "include": "#methods" },
+		{ "include": "#primitives" },
+		{ "include": "#keywords" },
+		{ "include": "#keywords2" },
+		{ "include": "#strings" },
+		{ "include": "#characters" },
+		{ "include": "#mlcomments" },
+		{ "include": "#comments" },
+		{ "include": "#numbers" },
+		{ "include": "#types" },
+		{ "include": "#enum" },
+		{ "include": "#axiom" },
+		{ "include": "#functions" },
+		{ "include": "#variables" }
+	],
+	"repository": {
+		"invalid": {
+			"name": "invalid.mint",
+			"match": "''"
+		},
+		"keywords": {
+			"name": "keyword.control.mint",
+			"match": "\\b(assert|if|else|while|for|return(?!\\s*=)|induceruntimecrashforrealz|import|goto|break)\\b"
+		},
+		"keywords2": {
+			"name": "storage.type.mint",
+			"match": "\\.\\.\\.|\\b(return(?=\\s*=)|sizeof|typeof|let|const|get|fn|defer|type|impl|copy|static|def|void|nullref|false|true|this)\\b"
+		},
+		"strings": {
+			"name": "string.quoted.double.mint",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [{
+				"name": "constant.character.escape.mint",
+				"match": "\\\\u[a-fA-F0-9]{2,8};?|\\\\x[a-fA-F0-9]{2}|\\\\[\\w\"]"
+			}]
+		},
+		"characters": {
+			"name": "string.quoted.single.mint",
+			"match": "'(\\\\u[a-fA-F0-9]{2,8}|\\\\x[a-fA-F0-9]{2}|\\\\[\\w']|.)",
+			"captures": {"1": {
+				"name": "constant.character.escape.mint"
+			}}
+		},
+		"mlcomments": {
+			"begin": "##",
+			"end": "##",
+			"name": "comment.mint"
+		},
+		"comments": {
+			"name": "comment.line.mint",
+			"match": "#(?!#)[^#\n]*(#|\n|$)"
+		},
+		"numbers": {
+			"name": "constant.numeric.mint",
+			"match": "\\d+|\\d*\\.\\d+(e[+-]?\\d+)?"
+		},
+		"primitives": {
+			"name": "entity.name.type.mint",
+			"match": "(?!<\\w)(\\$|u8|i8|u16|i16|u32|i32|u64|i64|u128|i128|f32|f64|f16|f128|_f256|int|uint|float|bool|fn(?=\\s*\\())(?!\\w)"
+		},
+		"types": {
+			"name": "entity.name.type.mint",
+			"match": "[A-Z][a-zA-Z_0-9]*"
+		},
+		"enum": {
+			"name": "string.regexp.mint",
+			"match": "\\$[a-zA-Z_0-9]+"
+		},
+		"axiom": {
+			"name": "keyword.axiom.mint",
+			"match": "@[a-zA-Z0-9_]+\\b"
+		},
+		"functions": {
+			"name": "entity.name.function.mint",
+			"match": "\\b[_a-z][a-zA-Z_0-9]*(?=\\s*!?\\()"
+		},
+		"fields": {
+			"name": "variable.other.object.property.mint",
+			"match": "(?<=\\.)[_a-z][a-zA-Z_0-9]*(?![a-zA-Z0-9_]|\\s*!?\\()"
+		},
+		"methods": {
+			"name": "entity.name.function.mint",
+			"match": "(?<=\\.)[_a-z][a-zA-Z_0-9]*(?=\\s*!?\\()"
+		},
+		"variables": {
+			"name": "entity.name.variable.mint",
+			"match": "\\b[_a-z][a-zA-Z_0-9]*\\b"
+		}
+	},
+	"scopeName": "source.mint"
+}

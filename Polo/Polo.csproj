@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
     <PropertyGroup>
      <OutputType>Library</OutputType>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -18,5 +18,8 @@
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="OneOf" Version="3.0.263" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\Polo.QBE\Polo.QBE\Polo.QBE.csproj" />
     </ItemGroup>
 </Project>

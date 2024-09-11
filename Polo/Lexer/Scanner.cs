@@ -32,8 +32,8 @@ internal class Scanner
             start = current;
             Scan();
         }
-
         AddToken(TokenType.EndOfFile);
+        
         return tokens.ToImmutableArray();
     }
 
@@ -174,11 +174,7 @@ internal class Scanner
                 }
 
                 var identifier = source[start..current];
-
-                AddToken(
-                    ReservedIdentifiers.Keywords.TryGetValue(identifier, out var identifierType)
-                        ? identifierType
-                        : TokenType.Identifier, identifier);
+                AddToken(ReservedIdentifiers.Keywords.GetValueOrDefault(identifier, TokenType.Identifier), identifier);
                 break;
             }
             case '"':
@@ -283,7 +279,6 @@ internal class Scanner
                 else
                 {
                     Error($"Unknown character '{character}'");
-
                 }
                 break;
             }
