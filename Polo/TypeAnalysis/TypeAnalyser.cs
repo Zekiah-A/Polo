@@ -20,11 +20,34 @@ internal class TypeAnalyser : IExpressionVisitor<object?, object?>, IStatementVi
     
     internal DefinedTypes Run()
     {
-        definedTypes.AddGlobal(new MintType("int", architecture.IntSize));
-        definedTypes.AddGlobal(new MintType("uint", architecture.IntSize));
-        definedTypes.AddGlobal(new MintType("float", architecture.FloatSize));
-        definedTypes.AddGlobal(new MintType("char", architecture.CharSize));
-        definedTypes.AddGlobal(new MintType("void", 0));
+        // System defined types
+        var intType = new MintType("int", architecture.IntSize);
+        definedTypes.AddGlobal(intType);
+        var uintType = new MintType("uint", architecture.IntSize);
+        definedTypes.AddGlobal(uintType);
+        var floatType = new MintType("float", architecture.FloatSize);
+        definedTypes.AddGlobal(floatType);
+        var charType = new MintType("char", architecture.CharSize);
+        definedTypes.AddGlobal(charType);
+        var voidType = new MintType("void", 0);
+        definedTypes.AddGlobal(voidType);
+        
+        // Mint compiler primitive types
+        definedTypes.AddGlobal(new MintType("u0", 0, voidType));
+        definedTypes.AddGlobal(new MintType("u8", 1, architecture.CharSize == 1 ? charType : null));
+        definedTypes.AddGlobal(new MintType("i8", 1, architecture.CharSize == 1 ? charType : null));
+        definedTypes.AddGlobal(new MintType("u16", 2, architecture.IntSize == 2 ? uintType : null));
+        definedTypes.AddGlobal(new MintType("i16", 2, architecture.IntSize == 2 ? intType : null));
+        definedTypes.AddGlobal(new MintType("u32", 4, architecture.IntSize == 4 ? uintType : null));
+        definedTypes.AddGlobal(new MintType("i32", 4, architecture.IntSize == 4 ? intType : null));
+        definedTypes.AddGlobal(new MintType("u64", 8, architecture.IntSize == 8 ? intType : null));
+        definedTypes.AddGlobal(new MintType("i64", 8, architecture.IntSize == 8 ? intType : null));
+        //AddGlobal(new MintType("u128", 16));
+        //AddGlobal(new MintType("i128", 16));
+        //AddGlobal(new MintType("f16", 2));
+        definedTypes.AddGlobal(new MintType("f32", 4, architecture.FloatSize == 4 ? floatType : null));
+        definedTypes.AddGlobal(new MintType("f64", 8, architecture.FloatSize == 8 ? floatType : null));
+        
         
         return definedTypes;
     }

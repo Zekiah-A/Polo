@@ -13,26 +13,67 @@ namespace Polo.Runtime;
 /// </summary>
 internal unsafe class MintEnvironment
 {
-    // VM environment memory
+    // VM environment memory & runtime info
     private byte* stack;
     private long stackSize = 4096;
+    private byte* heap;
+    private long heapSize = 2097152;
+    private List<Dictionary<string, RuntimeValue>> stackIdentifiers;
+    // VM environment virtual registers
     private byte* frameStart;
+    private byte* previousFrameStart;
     private byte* stackPointer;
-    private List<StackIdentifier> stackIdentifiers;
     
     public MintEnvironment()
     {
-        stack = (byte*) NativeMemory.Alloc((UIntPtr) stackSize);
+        stack = (byte*)NativeMemory.Alloc((UIntPtr)stackSize);
         frameStart = stack;
         stackPointer = stack;
-        stackIdentifiers = new List<StackIdentifier>();
+        previousFrameStart = null;
+        stackIdentifiers = new List<Dictionary<string, RuntimeValue>>();
+        heap = (byte*)NativeMemory.Alloc((UIntPtr)heapSize);
     }
-    
+
     /// <summary>
-    /// Pushes a RuntimeType that was marshalled from a C# type from the heap to the stack program stack
-    /// when it is needed, for example, as a literal
+    /// Pushes a stack frame to the program's virtual stack
     /// </summary>
-    public void PushStack(RuntimeType variable, string? identifier = null)
+    public void PushFrame()
+    {
+        previousFrameStart = frameStart;
+        frameStart = stackPointer;
+        stackIdentifiers.Add(new Dictionary<string, RuntimeValue>());
+    }
+
+    /// <summary>
+    /// Pops a stack frame from the program's virtual stack
+    /// </summary>
+    public void ExitFrame()
+    {
+        if (stackIdentifiers.Count == 0)
+        {
+            throw new RuntimeErrorException("No frames to exit.");
+        }
+
+        // Remove the current frame's variable dictionary
+        stackIdentifiers.RemoveAt(stackIdentifiers.Count - 1);
+
+        // Reset the stack pointer to the start of the current frame
+        stackPointer = frameStart;
+
+        // Restore the previous frame start
+        frameStart = previousFrameStart;
+
+        // Move the stack pointer back to the previous frame if one exists
+        if (frameStart != null)
+        {
+            stackPointer = frameStart;
+        }
+    }
+
+    /// <summary>
+    /// Pushes a RuntimeValue (often marshalled from C# on the interpreter heap) to the program stack
+    /// </summary>
+    public void PushStack(RuntimeValue variable, string? identifier = null)
     {
         if (stackSize - ((long)stackPointer - (long)stack) < variable.Size)
         {
@@ -40,109 +81,56 @@ internal unsafe class MintEnvironment
         }
         if (identifier is not null)
         {
-            stackIdentifiers.Add(new StackIdentifier(identifier, variable));
+            stackIdentifiers.Last().Add(identifier, variable);
         }
         
         NativeMemory.Copy(variable.Value, stackPointer, (UIntPtr)variable.Size);
         stackPointer += variable.Size;
     }
 
-    public void PopStack(long size)
-    {
-        var newSp = stackPointer - size;
-        if (newSp < frameStart)
-        {
-            throw new RuntimeErrorException("Impossible operation. Trying to pop beyond stack frame");
-        }
-        for (var i = stackIdentifiers.Count - 1; i >= 0; i--)
-        {
-            var identPair = stackIdentifiers[i];
-            if ((long) identPair.TypeInfo.Value > (long) newSp)
-            {
-                stackIdentifiers.RemoveAt(i);
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        stackPointer = newSp;
-    }
-
-    public void ExitFrame()
-    {
-        stackPointer = frameStart;
-    }
-    
-    public void Malloc(long length)
-    {
-        NativeMemory.Alloc((UIntPtr) length);
-    }
-
-    public void Free(long addr)
-    {
-        NativeMemory.Free((void*) addr);
-    }
-
     /// <summary>
     /// Will use stack lookup table to try and find the stack offset of the named variable.
     /// Returning it boxed in a runtime type if it can
     /// </summary>
-    public RuntimeType Get(string name)
+    public RuntimeValue Get(string name)
     {
         for (var i = stackIdentifiers.Count - 1; i >= 0; i--)
         {
             var identPair = stackIdentifiers[i];
-            if (identPair.Identifier == name)
+            if (identPair.TryGetValue(name, out var info))
             {
-                return stackIdentifiers[i].TypeInfo;
+                return info;
             }
         }
 
         throw new RuntimeErrorException($"Undefined variable '{name}'");
     }
 
-    public void Assign(string name, object value)
+    public void Assign(string name, RuntimeValue value)
     {
-        /*if (token.Value is not null)
+        var variable = Get(name);
+        // Absolutely devious hack / optimisation. Assignment with memcpy is significantly slower than
+        // variable assignment, so by casting pointers to known CPU types based on size, we can achieve direct
+        // assignment without the overhead of memcpy, improving performance for small, frequently accessed values.
+        switch (value.Size)
         {
-            var name = token.Value.ToString();
-
-            if (name is not null)
-            {
-                if (values.ContainsKey(name))
-                {
-                    values[name] = value;
-                    return;
-                }
-
-                if (enclosing != null)
-                {
-                    enclosing.Assign(token, value);
-                    return;
-                }
-                
-                foreach (var fieldInfos in Assembly.GetExecutingAssembly().GetTypes().Select(type => type.GetFields(BindingFlags)))
-                {
-                    foreach (var field in fieldInfos)
-                    {
-                        try
-                        {
-                            if (!field.Name.Equals(name)) continue;
-                            var convertedValue = Convert.ChangeType(value, field.GetValue(field)?.GetType() ?? throw new InvalidOperationException());
-                            field.SetValue(field, convertedValue);
-                            return;
-                        }
-                        catch (Exception e)
-                        {
-                            throw new RuntimeErrorException($"Cast error, could could not cast value to type of '{name}'.\n{e}'");
-                        }
-                    }
-                }
-            }
-        }*/
-
-        throw new RuntimeErrorException($"Undefined variable '{name}'");
+            case 0:
+                break;
+            case sizeof(byte): // 1 byte value
+                *(byte*)variable.Value = *(byte*)value.Value;
+                break;
+            case sizeof(short): // 2 byte value
+                *(short*)variable.Value = *(short*)value.Value;
+                break;
+            case sizeof(int): // 3 byte value
+                *(int*)variable.Value = *(int*)value.Value;
+                break;
+            case sizeof(long): // 4 byte value
+                *(long*)variable.Value = *(long*)value.Value;
+                break;
+            default:
+                NativeMemory.Copy(value.Value, variable.Value, (UIntPtr)value.Size);
+                break;
+        }
     }
 }

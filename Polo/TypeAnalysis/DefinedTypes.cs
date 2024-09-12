@@ -10,22 +10,6 @@ public class DefinedTypes
     {
         GlobalTypes = new List<MintType>();
         Types = new Dictionary<string, MintType>();
-        
-        // Compiler defined primitive types
-        AddGlobal(new MintType("u0", 0));
-        AddGlobal(new MintType("u8", 1));
-        AddGlobal(new MintType("i8", 1));
-        AddGlobal(new MintType("u16", 2));
-        AddGlobal(new MintType("i16", 2));
-        AddGlobal(new MintType("u32", 4));
-        AddGlobal(new MintType("i32", 4));
-        AddGlobal(new MintType("u64", 8));
-        AddGlobal(new MintType("i64", 8));
-        AddGlobal(new MintType("u128", 16));
-        AddGlobal(new MintType("i128", 16));
-        AddGlobal(new MintType("f16", 2));
-        AddGlobal(new MintType("f32", 4));
-        AddGlobal(new MintType("f64", 8));
     }
 
     public void AddGlobal(MintType type)

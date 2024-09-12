@@ -1,6 +1,6 @@
 namespace Polo;
 
-public record TargetArchitecture(string Name, bool QbeSupport, int CharSize, int IntSize,
+public unsafe record TargetArchitecture(string Name, bool QbeSupport, int CharSize, int IntSize,
     int FloatSize, int PointerSize, bool IsLittleEndian)
 {
     public static TargetArchitecture Amd64 =
@@ -9,4 +9,6 @@ public record TargetArchitecture(string Name, bool QbeSupport, int CharSize, int
         new("aarch64", true, 1, 4, 4, 8, true);
     public static TargetArchitecture RiscV64 =
         new("riscv64", true, 1, 4, 4, 8, true);
+    public static TargetArchitecture Interpreter =
+        new("interpreter", true, sizeof(char), sizeof(int), sizeof(float), sizeof(void*), true);
 }

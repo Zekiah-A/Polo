@@ -6,8 +6,8 @@ absolute simplest possible operations in the programming language.
 ##
 
 # Assignment
-let a:int = 4
-let b:int = 6
+let a:i32 = 4
+let b:i32 = 6
 debug("a:", a, "b:", b)
 
 # Add -> 10

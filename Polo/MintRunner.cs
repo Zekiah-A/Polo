@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Polo.Exceptions;
 using Polo.Lexer;
 using Polo.Runtime;
@@ -10,14 +11,14 @@ namespace Polo;
 
 public class MintRunner
 {
-    public void Interpret(string source)
+    public void Interpret(string source, FileInfo? fileInfo = null)
     {
         try
         {
-            var interpreter = new Interpreter();
             var tokens = new Scanner(source).Run();
             var statements = new Parser(tokens).Run();
-            interpreter.Run(statements);
+            var definedTypes = new TypeAnalyser(statements, TargetArchitecture.Interpreter).Run();
+            new Interpreter(statements, definedTypes).Run();
         }
         catch (Exception error) when (error is ScanningErrorException or ParsingErrorException or RuntimeErrorException)
         {
@@ -35,7 +36,7 @@ public class MintRunner
         };
     }
     
-    public Task Compile(string source, TargetArchitecture? architecture = null)
+    public Task Compile(string source, FileInfo? fileInfo = null, TargetArchitecture? architecture = null)
     {
         architecture ??= GetTargetArchitecture();
 

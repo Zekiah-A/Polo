@@ -20,62 +20,22 @@ internal class Parser
 
         while (!IsAtEnd())
         {
-            var declaration = Declaration();
-            if (declaration is not null)
-            {
-                statements.Add(declaration);
-            }
+            statements.Add(Statement());
         }
 
         return statements.ToImmutableArray();
     }
 
-    private Statement Declaration()
-    {
-        if (Match(TokenType.Let))
-        {
-            return LetDeclaration();
-        }
-        if (Match(TokenType.Def))
-        {
-            return DefDeclaration();
-        }
-
-        return Statement();
-    }
-
-    private Statement DefDeclaration()
-    {
-        throw new NotImplementedException();
-    }
-
-    private Statement LetDeclaration()
-    {
-        var name = Consume(TokenType.Identifier, "Expected variable name");
-
-        Consume(TokenType.Colon, "Expected colon after variable name");
-        var typeName = Consume(TokenType.Identifier, "Expected variable type");
-
-        // Because variables can be assigned without a value.
-        Expression? initializer = null;
-        if (Match(TokenType.Equal))
-        {
-            initializer = Expression();
-        }
-
-        return new Let((string) name.Value!, (string) typeName.Value!, initializer);
-    }
-
     private Statement Statement()
     {
+        if (Match(TokenType.Indent))
+        {
+            return BlockStatement();
+        }
+
         if (Match(TokenType.If))
         {
             return IfStatement();
-        }
-
-        if (Match(TokenType.Indent))
-        {
-            return new Block(BlockStatement());
         }
 
         if (Match(TokenType.While))
@@ -103,17 +63,42 @@ internal class Parser
             return TypeStatement();
         }
         
+        if (Match(TokenType.Let))
+        {
+            return LetDeclaration();
+        }
+        
         return ExpressionStatement();
+    }
+    
+
+    private Statement LetDeclaration()
+    {
+        var name = Consume(TokenType.Identifier, "Expected variable name");
+
+        Consume(TokenType.Colon, "Expected colon after variable name");
+        var typeName = Consume(TokenType.Identifier, "Expected variable type");
+
+        // Because variables can be assigned without a value.
+        Expression? initializer = null;
+        if (Match(TokenType.Equal))
+        {
+            initializer = Expression();
+        }
+
+        return new Let((string) name.Value!, (string) typeName.Value!, initializer);
     }
     
     private Statement IfStatement()
     {
         var condition = Expression();
-        var thenBranch = Statement();
-        Statement? elseBranch = null;
-
+        var thenBranch = BlockStatement();
+        
+        Block? elseBranch = null;
         if (Match(TokenType.Else))
-            elseBranch = Statement();
+        {
+            elseBranch = BlockStatement();
+        }
 
         return new If(condition, thenBranch, elseBranch);
     }
@@ -122,22 +107,22 @@ internal class Parser
     {
         var condition = Expression();
         Consume(TokenType.Indent, "Expected 'indent' after while declaration");
-        var body = Statement();
+        var body = BlockStatement();
         Consume(TokenType.UnIndent, "Expected 'unindent' after while body");
 
         return new While(condition, body);
     }
 
-    private List<Statement> BlockStatement()
+    private Block BlockStatement()
     {
         var statements = new List<Statement>();
-        while (!CheckType(TokenType.RightBrace) && !IsAtEnd())
+        while (!CheckType(TokenType.UnIndent))
         {
-            statements.Add(Declaration());
+            statements.Add(Statement());
         }
-
-        Consume(TokenType.UnIndent, "Expected 'unindent' after the code block");
-        return statements;
+        Consume(TokenType.UnIndent, "Expected unindent after block definition");
+        
+        return new Block(statements);
     }
 
     private Statement FunctionStatement()
@@ -160,8 +145,10 @@ internal class Parser
         
         Consume(TokenType.Colon, "Expected ':' before function return type");
         var returnType = Consume(TokenType.Identifier, "Expected function return type");
+
+        var body = BlockStatement();
         
-        return new Function(name, @params, new List<Statement>(), (string) returnType.Value!);
+        return new Function(name, @params, body, (string) returnType.Value!);
     }
 
     private Statement ReturnStatement()
@@ -179,7 +166,17 @@ internal class Parser
 
     private Statement TypeStatement()
     {
-        return new Type();
+        //  if (Match(TokenType.Def))
+        // {
+        //     return DefDeclaration();
+        // }
+        
+        throw new NotImplementedException();
+    }
+
+    private Statement DefDeclaration()
+    {
+        throw new NotImplementedException();
     }
 
     private Statement DebugStatement()
@@ -341,27 +338,34 @@ internal class Parser
     {
         if (Match(TokenType.False))
         {
-            return new Literal(false, LiteralType.Binary);
+            return new Literal("false", LiteralType.Binary);
         }
         
         if (Match(TokenType.True))
         {
-            return new Literal(true, LiteralType.Binary);
+            return new Literal("true", LiteralType.Binary);
         }
         
         if (Match(TokenType.NullRef))
         {
-            return new Literal(null, LiteralType.Null);
+            return new Literal("null", LiteralType.Null);
         }
         
         if (Match(TokenType.Number))
         {
-            return new Literal(Previous().Value, LiteralType.Integer);
+            var number = (string)Previous().Value!;
+            return number.Contains('.') ?
+                new Literal(number, LiteralType.Decimal) : new Literal(number, LiteralType.Integer);
+        }
+        
+        if (Match(TokenType.Character))
+        {
+            return new Literal((string) Previous().Value!, LiteralType.Char);
         }
         
         if (Match(TokenType.String))
         {
-            return new Literal(Previous().Value, LiteralType.String);
+            return new Literal((string) Previous().Value!, LiteralType.String);
         }
         
         if (Match(TokenType.Identifier))
@@ -376,26 +380,29 @@ internal class Parser
             return new Grouping(expression);
         }
 
+        for (var i = current; i >= 0; i--)
+        {
+            Console.WriteLine(source[i]);
+        }
         throw Error(Peek(), "Expected Expression");
     }
 
     private List<Expression> CallParameters()
     {
         var parameters = new List<Expression>();
-        // TODO: Sus code
-        try
+        while (true)
         {
-            while (true)
+            if (Peek().Type == TokenType.RightParen)
             {
-                parameters.Add(Expression());
-                Consume(TokenType.Comma, "Expected ',' between method call arguments");
+                break;
+            }
+            
+            parameters.Add(Expression());
+            if (Peek().Type == TokenType.Comma)
+            {
+                Advance();
             }
         }
-        catch (ParsingErrorException)
-        {
-            
-        }
-
         return parameters;
     }
 

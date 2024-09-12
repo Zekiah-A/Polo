@@ -63,6 +63,7 @@
 			<item>int</item>
 			<item>uint</item>
 			<item>float</item>
+			<item>char</item>
 			<item>bool</item>
 		</list>
 		<contexts>

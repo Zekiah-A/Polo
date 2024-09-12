@@ -24,7 +24,7 @@ public enum TokenType
     CompileTime, Import, Include, Line, File, Date, Time, Counter,
     
     // Literals
-    Identifier, String, Number,
+    Identifier, Character, String, Number,
 
     Indent, UnIndent,
     EndOfFile

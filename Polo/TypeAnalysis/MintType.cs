@@ -5,6 +5,7 @@ namespace Polo.TypeAnalysis;
 public class MintType
 {
     public string Name { get; set; }
+    public MintType? Typedefs { get; set; }
     public MintType? PointerFor { get; set; }
     public List<MintType> Implements { get; set; }
     // Type members
@@ -27,9 +28,11 @@ public class MintType
         constSize = -1;
     }
 
-    public MintType(string name, int constSize) : this(name)
+    public MintType(string name, int constSize, MintType? typedefs = null, MintType? pointerFor = null) : this(name)
     {
         this.constSize = constSize;
+        Typedefs = typedefs;
+        PointerFor = pointerFor;
     }
 
     public int GetSizeAligned()

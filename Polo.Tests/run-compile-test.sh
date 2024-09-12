@@ -6,7 +6,7 @@ sample_name="${1:-operators}"
 
 dotnet build
 printf "\n\x1b[36m------- Polo QBE IL Output -------\x1b[0m\n"
-dotnet run --no-build -- --compile Samples/"$sample_name".mt 2>&1 > >(tee test.ssa)
+dotnet run  -- compile --file Samples/"$sample_name".mt 2>&1 > >(tee test.ssa)
 if qbe_output=$(qbe -o - test.ssa); then
     printf "\n\x1b[36m-------   QBE ASM Output   -------\x1b[0m\n"
     printf "%s" "$qbe_output" | tee test.s

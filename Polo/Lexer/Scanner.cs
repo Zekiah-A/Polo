@@ -6,8 +6,7 @@ namespace Polo.Lexer;
 
 internal class Scanner
 {
-    private int lastIndent = 0;
-    private int indent = 0;
+    private int lastIndent;
     private int line = 1;
     private int start;
     private int current;
@@ -27,6 +26,7 @@ internal class Scanner
 
     public ImmutableArray<Token> Run()
     {
+        CheckIndents();
         while (!IsAtEnd())
         {
             start = current;
@@ -66,34 +66,51 @@ internal class Scanner
     private void NextLine()
     {
         line++;
-        lastIndent = indent;
-        var deltaIndent = indent - lastIndent;
-        switch (deltaIndent)
-        {
-            case 1:
-            {
-                AddToken(TokenType.Indent);
-                break;
-            }
-            case < 0:
-            {
-                while (deltaIndent != 0)
-                {
-                    AddToken(TokenType.UnIndent);
-                    deltaIndent++;
-                }
+        lineTokens.Clear();
+        CheckIndents();
+    }
 
-                break;
-            }
-            case > 1:
-            {
-                Error($"Unexpected increase in indentation of {deltaIndent}");
-                break;
-            }
+    private void CheckIndents()
+    {
+        // Count indents when encountering start of new line
+        if (lineTokens.Count != 0)
+        {
+            return;
         }
 
-        indent = 0;
-        lineTokens.Clear();
+        // x
+        //     x           | Indent
+        //         x       | Indent
+        // x               | UnIndent, UnIndent
+        //         x       | Error - Invalid increase in indentation
+        var indent = 0;
+        while (Match('\t'))
+        {
+            indent++;
+        }
+
+        var deltaIndent = indent - lastIndent;
+        // Indenting by more than 1 for a new block is unsupported
+        if (deltaIndent > 1)
+        {
+            throw Error($"Unexpected increase in indentation of {deltaIndent}");
+        }
+
+        // Add new indent level
+        if (deltaIndent == 1)
+        {
+            AddToken(TokenType.Indent);
+        }
+
+        // Subtract any indents from the previous line
+        if (deltaIndent < 0)
+        {
+            for (var i = deltaIndent; i < 0; i++)
+            {
+                AddToken(TokenType.UnIndent);
+            }
+        }
+        lastIndent = indent;
     }
     
     private void Scan()
@@ -101,6 +118,8 @@ internal class Scanner
         var character = Advance();
         switch (character)
         {
+            case '\r':
+                break;
             case '\n':
             {
                 NextLine();
@@ -108,23 +127,14 @@ internal class Scanner
             }
             case ' ':
             {
-                // If we (^) are at end of indents section, such as "    codecode" "   ^codecode" and the next token
-                // is not an indent but there is a space, then they have used a space to indent
-                var withinIndents = tokens.Count > 0 && !lineTokens.Any(token => token.Type is not (TokenType.Indent or TokenType.UnIndent));
-                if (withinIndents /*&& tokens[current].Type is not (TokenType.Indent or TokenType.UnIndent)*/)
+                // If we (^) are at end of indents before this line's statement, such as "    code" "   ^code"
+                // and the next token is not an indent but there is a space, then they have used spaces to indent.
+                if (!lineTokens.Any(token => token.Type is not TokenType.Indent))
                 {
-                    Warn("Character ' ' has no semantic meaning and will be ignored when defining block scopes. Use 'tab' character instead");
+                    Warn("Character ' ' has no semantic meaning and will be ignored when defining block scopes. Use 'tab' character instead.");
                 }
                 break;
             }
-            case '\r': break;
-            case '\t':
-                var beyondIndents = lineTokens.Any(token => token.Type is not (TokenType.Indent or TokenType.UnIndent));
-                if (!beyondIndents)
-                {
-                    indent++;
-                }
-                break;
             case '!':
                 AddToken(Match('=') ? TokenType.BangEqual : TokenType.Bang);
                 break;
@@ -163,7 +173,7 @@ internal class Scanner
                     }
                 }
 
-                AddToken(TokenType.Number, double.Parse(source[start..current]));
+                AddToken(TokenType.Number, source[start..current]);
                 break;
             }
             case >= 'a' and <= 'z' or '_':
@@ -179,6 +189,7 @@ internal class Scanner
             }
             case '"':
             {
+                var stringBuilder = new System.Text.StringBuilder();
                 while (Peek() != '"' && !IsAtEnd())
                 {
                     if (Peek() == '\n')
@@ -186,45 +197,91 @@ internal class Scanner
                         line++;
                     }
 
-                    Advance();
+                    if (Peek() == '\\')
+                    {
+                        Advance(); // Skip the backslash
+                        char escapedChar = Advance();
+                        switch (escapedChar)
+                        {
+                            case 'n':
+                                stringBuilder.Append('\n');
+                                break;
+                            case 't':
+                                stringBuilder.Append('\t');
+                                break;
+                            case '"':
+                                stringBuilder.Append('"');
+                                break;
+                            case '\\':
+                                stringBuilder.Append('\\');
+                                break;
+                            default:
+                                stringBuilder.Append('\\').Append(escapedChar); // Handle unknown escape sequences
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        stringBuilder.Append(Advance());
+                    }
                 }
 
                 if (IsAtEnd())
                 {
-                    Error("Unterminated string");
+                    throw Error("Unterminated string");
                 }
 
-                // The closing quote.
+                // Handle closing quote
                 Advance();
 
-                var content = source[(start + 1)..(current - 1)];
+                var content = stringBuilder.ToString();
                 AddToken(TokenType.String, content);
                 break;
             }
             case '\'':
             {
-                var strStart = current;
-                char c;
+                var charBuilder = new System.Text.StringBuilder();
                 if (Match('\\'))
                 {
-                    c = Advance();
-                }
-                var @char = Advance();
-                
-                while (Peek() != '"' && !IsAtEnd())
-                {
-                    if (Peek() == '\n')
+                    var escapedChar = Advance();
+                    switch (escapedChar)
                     {
-                        line++;
+                        case 'n':
+                            charBuilder.Append('\n');
+                            break;
+                        case 't':
+                            charBuilder.Append('\t');
+                            break;
+                        case '\'':
+                            charBuilder.Append('\'');
+                            break;
+                        case '\\':
+                            charBuilder.Append('\\');
+                            break;
+                        default:
+                            throw Error($"Unknown escape sequence \\{escapedChar}");
                     }
-
-                    Advance();
                 }
-                
-                if (IsAtEnd())
+                else
                 {
-                    Error("Unterminated string");
+                    charBuilder.Append(Advance());
                 }
+
+                if (charBuilder.Length != 1)
+                {
+                    throw Error("Invalid character literal");
+                }
+
+                if (Peek() != '\'' || IsAtEnd())
+                {
+                    throw Error("Unterminated character literal");
+                }
+
+                // Handle closing quote
+                Advance();
+
+                var content = charBuilder.ToString();
+                AddToken(TokenType.Character, content);
                 break;
             }
             case '#':
@@ -247,8 +304,7 @@ internal class Scanner
 
                         if (IsAtEnd())
                         {
-                            Error("Unexpected 'end of file' within multi-line comment. Did you forget to close it?");
-                            break;
+                            throw Error("Unexpected 'end of file' within multi-line comment. Did you forget to close it?");
                         }
                         
                         Advance();
@@ -275,10 +331,9 @@ internal class Scanner
                 {
                     AddToken(characterType, character);
                 }
-
                 else
                 {
-                    Error($"Unknown character '{character}'");
+                    throw Error($"Unknown character '{character}'");
                 }
                 break;
             }
@@ -287,13 +342,13 @@ internal class Scanner
 
     private ScanningErrorException Error(string message)
     {
-        throw new ScanningErrorException(message);
+        return new ScanningErrorException($"{line}: {message}");
     }
 
     private void Warn(string message)
     {
         Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine(message);
+        Console.WriteLine("{0}: {1}", line, message);
         Console.ResetColor();
     }
 
